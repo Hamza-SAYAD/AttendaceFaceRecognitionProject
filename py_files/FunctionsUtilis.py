@@ -1,3 +1,4 @@
+import streamlit as st
 import os
 
 from time import sleep
@@ -8,7 +9,7 @@ import cvzone
 
 
 from datetime import datetime
-import streamlit as st
+
 import random, string
 
 
@@ -71,7 +72,7 @@ class FunctionsUtilis:
         try :
 
 
-            # sleep(5)
+
             with open(self.get_location_path(), "r") as f:
                 location_data = json.load(f)
 
@@ -122,7 +123,7 @@ class FunctionsUtilis:
             self.messages_placeholder.markdown("**Présence autorisée**")
             sleep(1)
             self.messages_placeholder.markdown(f"**Distance à {target} : {distance_to_target:.2f} km**")
-            # sleep(1)
+            sleep(2)
             return True
         else:
             self.messages_placeholder.markdown("**Présence refusée : Vous êtes hors de la zone autorisée**")

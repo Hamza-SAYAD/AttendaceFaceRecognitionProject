@@ -1,6 +1,6 @@
 # Default ignored files
 /shelf/
 /workspace.xml
-/modelsmodels/masknet.h5
+/models/masknet.h5
 /models/haarcascade_frontalface_default.xml
 main.py

@@ -32,6 +32,7 @@ def findEncodings(imagesList):
             pass
         encode = face_recognition.face_encodings(img)[0]
         encodeList.append(encode)
+        print(encodeList)
 
     return encodeList
 

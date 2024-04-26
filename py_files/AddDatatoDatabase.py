@@ -1,9 +1,10 @@
+import streamlit as st
 import os
 import sys
 from time import sleep
 
 from py_files.FirebaseManager import FirebaseManager
-import streamlit as st
+
 import py_files.EncodeGenerator as encode
 from io import BytesIO
 from PIL import Image
@@ -28,57 +29,15 @@ def dashboard():
 
         # Prepare data for visualizations (extract from student_data dictionary)
         year_counts = {int(student['starting_year']): len(student_data) for student in student_data.values()}
-        gpa_data = [student.get('gpa', None) for student in student_data.values() if
-                    student.get('gpa', None) is not None]  # Handle potential missing GPA data
         attendance_data = [student['total_attendance'] for student in student_data.values()]
 
         # Create a Streamlit page for student dashboard
         st.title("Students Dashboard")
 
-        # Student Distribution by Year
-        fig = px.bar(x=list(year_counts.keys()), y=list(year_counts.values()), title="Student Distribution by Year")
-        st.plotly_chart(fig)
-
-
-        # Attendance Distribution
-        fig = px.histogram(attendance_data, title="Attendance Distribution")
-        st.plotly_chart(fig)
-
-
-        # Year vs. Attendance Box Plot x='starting_year', y='total_attendance'
-        year_attendance = [(student['starting_year'], student['total_attendance']) for student in student_data.values()]
-        fig = px.box(year_attendance, x=0, y=1,
-                     title="Attendance Distribution by Year (0 for starting _year and 1 is the total_attendance)")
-        st.plotly_chart(fig)
-
-        # Major vs. Attendance Scatter Plot (if available) if 'major' in student_data.values()[0]
-
-        major_attendance = [(student['major'], student['total_attendance']) for student in student_data.values()]
-        fig = px.scatter(major_attendance, x=0, y=1,
-                         title="Attendance Distribution (1) by Major (0)")
-        st.plotly_chart(fig)
-
-
-        # Standing (Nivea de présence) vs. Attendance (total nombre de présence) Bar Chart
-        standing_attendance = {}
-        for student in student_data.values():
-            standing = student.get('standing', None)  # Handle potential missing standing data
-            attendance = student['total_attendance']
-            if standing:
-                if standing not in standing_attendance:
-                    standing_attendance[standing] = []
-                standing_attendance[standing].append(attendance)
-        fig = px.bar(x=list(standing_attendance.keys()), y=[sum(v) for v in standing_attendance.values()],
-                     title="Average Attendance by Standing")
-        st.plotly_chart(fig)
-
-
-
 
         # delete students
         # Convert student data to a Pandas DataFrame
         student_df = pd.DataFrame(student_data.values())
-        # student_df.index = student_df['id']  # Set student ID as index
         student_df.index = [id for id in student_data.keys()]  # Set student ID as index
 
 
@@ -94,10 +53,11 @@ def dashboard():
                 try:
                     bucket.delete_blob(student_image_path)
                 except Exception as e:  # Catch any potential exception
-                    if "NOT_FOUND" in str(e):  # Check for a string containing "NOT_FOUND"
-                        st.info(f"Student image for ID {student_id} not found in Storage.")
-                    else:
-                        st.error(f"Error deleting student image: {e}")  # Log or display the error
+                    # if "NOT_FOUND" in str(e):  # Check for a string containing "NOT_FOUND"
+                    #     st.info(f"Student image for ID {student_id} not found in Storage.")
+                    # else:
+                    #     st.error(f"Error deleting student image: {e}")  # Log or display the error
+                    pass
 
                 # Remove student from local data
 
@@ -108,6 +68,10 @@ def dashboard():
 
                 del student_data[student_id]  # Remove student from dictionary (for UI update)
                 student_df.drop(student_id, inplace=True)  # Remove student from DataFrame
+                # Mise à jour de l'encoding
+                with st.spinner('Obtention de l\'encodage des images ...'):
+                    # obtention de l'encodage des images
+                    encode.get_store_encodings()
                 st.success(f"Student with ID {student_id} deleted successfully!")
                 # refresh
                 st.rerun()  # Trigger automatic refresh
@@ -121,56 +85,159 @@ def dashboard():
         # Create a Streamlit page for student dashboard
         st.header("Students list :")
 
+###############################################################
+        table_cols = st.columns(2)
 
 
-        # Student Table with Delete Confirmation Button
-        student_table = st.table(student_df[['name', 'major', 'starting_year', 'total_attendance', 'standing']])
 
 
-        for index, row in student_df.iterrows():
-            student_id = index
+        with table_cols[0]:
 
-            # student_id = row['id']
-            delete_button = st.button(f"Delete Student {student_id}")
-            if delete_button:
-                delete_student_from_firebase(student_id)
+            student_table = st.table(student_df[['name', 'major', 'starting_year', 'total_attendance', 'standing']])
+
+        with table_cols[1]:
+
+            for index, row in student_df.iterrows():
+                student_id = index
+                delete_button = st.button(f"Delete {student_id}", type="primary")
+                if delete_button:
+                    delete_student_from_firebase(student_id)
 
 
         # Total Attendance by Student Graph
-        attendance_fig = px.bar(student_df, x='name', y='total_attendance', title="Total Attendance by Student")
-        # Display the attendance graph
-        st.plotly_chart(attendance_fig)
-
-        # Assuming 'major' exists in student_df
-        attendance_by_major = student_df.groupby('major')['total_attendance'].sum().reset_index()
-        attendance_fig = px.pie(attendance_by_major, values='total_attendance', names='major',
-                                title="Attendance Distribution by Major")
-        st.plotly_chart(attendance_fig)
+        fig1 = px.bar(student_df, x='name', y='total_attendance',
+                      title="Le nombre total de présence par étudiant", width=400)
 
 
+        # Total mask detected by Student Graph
+        fig2 = px.line(student_df, x='name', y='total_mask_detected',
+                                title="Le nombre total de mask détecté par étudiant", width=400)
+
+        attendance_by_major = student_df.groupby('major')['total_mask_detected'].sum().reset_index()
+        fig3 = px.pie(attendance_by_major, values='total_mask_detected', names='major',
+                                title="La distribution de port de mask totale par filière", width=400)
 
         # Standing level by Student Graph
-        attendance_fig = px.bar(student_df, x='name', y='standing', title="Total Attendance by Student")
-        # Display the attendance graph
-        st.plotly_chart(attendance_fig)
+        fig4 = px.bar(student_df, x='name', y='standing',
+                      title="Le niveau de présence par étudiant", width=400)
 
-
-
+        attendance_by_major = student_df.groupby('major')['total_attendance'].sum().reset_index()
+        fig5 = px.pie(attendance_by_major, values='total_attendance', names='major',
+                                title="La distribution de présence totale par filière", width=400)
+        
         # Number of Students by Standing Graph
         standing_counts_df = student_df['standing'].value_counts().reset_index(name='Count')
-        standing_fig = px.bar(standing_counts_df, x='standing', y='Count', title="Number of Students by Standing")
-        # Display the standing graph
-        st.plotly_chart(standing_fig)
-
-
-
+        fig6 = px.bar(standing_counts_df, x='standing', y='Count',
+                      title="Le nombre des étudiants par niveau de présence", width=400)
 
         # Distribution of Students by Starting Year
         starting_year_counts = student_df['starting_year'].value_counts().reset_index(name='Count')
-        starting_year_fig = px.pie(starting_year_counts, values='Count', names='starting_year', title="Distribution of Students by Starting Year")
-        st.plotly_chart(starting_year_fig)
+        fig7 = px.pie(starting_year_counts, values='Count', names='starting_year',
+                      title="La distribution des étudiants par année d'entrée", width=400)
 
-         # we can add more graphs for the masm as the attendance
+
+        # Student Distribution by Year
+        fig8 = px.bar(x=list(year_counts.keys()), y=list(year_counts.values()),
+                      title="La distribution des étudiants par année", width=400)
+
+
+        # Attendance Distribution
+        fig9 = px.histogram(attendance_data, title="Le nombre d\'etudiants par categories\n en termes du totale de présence ", width=400)
+
+
+        # Year vs. Attendance Box Plot x='starting_year', y='total_attendance'
+        year_attendance = [(student['starting_year'], student['total_attendance']) for student in student_data.values()]
+        fig10 = px.box(year_attendance, x=0, y=1,
+        title="La distribution de présence (1) par année d'entrée ", width=400)
+
+        major_attendance = [(student['major'], student['total_attendance']) for student in student_data.values()]
+        fig11 = px.scatter(major_attendance, x=0, y=1,
+                         title="La distribution de présence (1) par filière ", width=400)
+
+        standing_attendance = {}
+        for student in student_data.values():
+            standing = student.get('standing', None)  # Handle potential missing standing data
+            attendance = student['total_attendance']
+            if standing:
+                if standing not in standing_attendance:
+                    standing_attendance[standing] = []
+                standing_attendance[standing].append(attendance)
+        fig12 = px.bar(x=list(standing_attendance.keys()), y=[sum(v) for v in standing_attendance.values()],
+                     title="Le total  de présence par niveau de présence ", width=400)
+
+
+####################################################################
+        # Define columns , think of the use of a for loop
+        st.subheader("La dimension ou l'axe etudiant")
+        etudiant_cols = st.columns(3, gap="medium")
+
+        with etudiant_cols[0]:
+
+            st.plotly_chart(fig1)
+
+        with etudiant_cols[1]:
+
+            st.plotly_chart(fig2)
+
+
+        with etudiant_cols[2]:
+
+            st.plotly_chart(fig4)
+
+
+####################################################################
+        st.subheader("La dimension ou l'axe filière")
+        filiere_cols = st.columns(3, gap="medium")
+
+
+        with filiere_cols[0]:
+
+            st.plotly_chart(fig3)
+
+        with filiere_cols[1]:
+
+            st.plotly_chart(fig5)
+
+
+        with filiere_cols [2]:
+
+            st.plotly_chart(fig11)
+
+####################################################################
+        st.subheader("La dimension ou l'axe année et année d'entrée")
+        anne_cols = st.columns(3, gap="medium")
+
+        with anne_cols[0]:
+
+            st.plotly_chart(fig7)
+
+        with anne_cols[1]:
+
+            st.plotly_chart(fig8)
+
+
+        with anne_cols[2]:
+
+            st.plotly_chart(fig10)
+
+####################################################################
+        st.subheader("La dimension niveau de présence")
+        niv_presence_cols = st.columns(3, gap="medium")
+
+
+        with niv_presence_cols[0]:
+
+            st.plotly_chart(fig9)
+
+        with niv_presence_cols[1]:
+
+            st.plotly_chart(fig12)
+
+        with niv_presence_cols[2]:
+
+            st.plotly_chart(fig6)
+
+
 
 def generate_random_id():
     """Generates a random 6-digit ID with at least one non-zero digit."""
@@ -183,16 +250,14 @@ def generate_random_id():
 def add_student_data(student_data, image_path=""):
     with st.spinner('Ajout de données de l\'étudiant ...'):
         id = student_data['id']
-        # student_data.pop(id)
+
         student_data = {key: value for key, value in student_data.items() if key != 'id'}
         data[id] = student_data
-        # print(data)
+
         for key, value in data.items():  # for each row in the json format
             ref.child(key).set(value)
 
 
-# ,
-#             'image': image_encoded
 
 
 def add_data_to_db(form_placeholder):
@@ -206,8 +271,6 @@ def add_data_to_db(form_placeholder):
 
     current_year = datetime.datetime.now().year
     starting_years = list(range(current_year - 4, current_year + 1))  # Last 5 years
-
-    # ... (existing code for the form)
 
     with form_placeholder.form(key='student_data_form', clear_on_submit=True):
 
@@ -238,7 +301,7 @@ def add_data_to_db(form_placeholder):
             # Vérification si l'image a été téléchargée
             if image_file is not None:
 
-                # Enregistrement de l'image dans un fichier temporaire
+                # Enregistrement de l'image dans localement
                 image_path = f'{folderPath}/{student_data["id"]}.png'
 
                 image_data = image_file.read()
