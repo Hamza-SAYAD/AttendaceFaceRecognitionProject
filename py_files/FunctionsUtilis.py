@@ -1,3 +1,5 @@
+import sys
+
 import streamlit as st
 import os
 
@@ -25,6 +27,35 @@ class FunctionsUtilis:
     def __init__(self, messages_placeholder = st.empty()):
         self.messages_placeholder = messages_placeholder
         self.geolocator = Nominatim(user_agent="attendance_mask_app")
+
+    # def get_tolerance_value(self):
+    #     tolerance_distance = 5
+    #     tolerance_form_placeholder = st.empty()
+    #
+    #     with tolerance_form_placeholder.form(key='tolerance_location_form'):
+    #
+    #         # Champs du formulaire
+    #         st.header("Saisie de tolerance de localisation : ")
+    #
+    #         st.subheader("Veuillez saisir la valeur de tolerance de distance  : (en km) ")
+    #         tolerance = st.text_input('La tolerance :', value=0.5)
+    #
+    #
+    #         # Bouton de soumission
+    #         submit_button = st.form_submit_button('Set tolerance')
+    #
+    #     if submit_button:
+    #         tolerance_form_placeholder.empty()
+    #         if tolerance is not None :
+    #
+    #             st.success(f"La tolerance est : {tolerance} km")
+    #
+    #             return  float(tolerance)
+    #         else :
+    #             st.success(f"La tolerance est : {tolerance_distance} km")
+    #
+    #             return float(tolerance_distance)
+
 
     def get_location_path(self) :
 
@@ -92,7 +123,7 @@ class FunctionsUtilis:
 
 
         except Exception as e:
-            # print(f"Échec de la géolocalisation du navigateur: {e}")
+
             self.messages_placeholder.markdown(f"Échec de géolocalisation .")
             return None, None  # Handle location failure
 
@@ -117,20 +148,26 @@ class FunctionsUtilis:
             target_longitude = -9.263595630981976
 
         distance_to_target = distance((user_latitude, user_longitude), (target_latitude, target_longitude)).km
-        tolerance_distance = 5 # 500 meters
+        tolerance_distance = 1500 # 500 meters
+        # tolerance_distance = self.get_tolerance_value()
+        if tolerance_distance is not None :
 
-        if distance_to_target <= tolerance_distance:
-            self.messages_placeholder.markdown("**Présence autorisée**")
-            sleep(1)
-            self.messages_placeholder.markdown(f"**Distance à {target} : {distance_to_target:.2f} km**")
-            sleep(2)
-            return True
-        else:
-            self.messages_placeholder.markdown("**Présence refusée : Vous êtes hors de la zone autorisée**")
-            sleep(1)
-            self.messages_placeholder.markdown(f"**Distance à {target} : {distance_to_target:.2f} km**")
-            # sleep(1)
-            return False
+            if float(distance_to_target) <= tolerance_distance:
+                self.messages_placeholder.markdown(f"**Présence autorisée**\n **Distance à {target} : {distance_to_target:.2f} km**")
+                sleep(1)
+
+                return True
+            else:
+
+
+                self.messages_placeholder.markdown(f"**Présence refusée : Vous êtes hors de la zone autorisée**     \n **Distance à {target} : {distance_to_target:.2f} km**")
+
+                sleep(1)
+                return False
+        # else :
+        #
+        #     sys.exit(0)
+
 
     def read_data(self, form_placeholder):
         max_time_mask_def = 60  # 1 minute
