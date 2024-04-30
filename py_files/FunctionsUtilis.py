@@ -1,4 +1,3 @@
-import sys
 
 import streamlit as st
 import os
@@ -8,12 +7,9 @@ import cv2
 
 import cvzone
 
-
-
 from datetime import datetime
 
 import random, string
-
 
 from geopy.exc import GeocoderServiceError
 from geopy.geocoders import Nominatim
@@ -21,10 +17,10 @@ from geopy.geocoders import Nominatim
 from geopy.distance import distance
 import json
 
+
 class FunctionsUtilis:
 
-
-    def __init__(self, messages_placeholder = st.empty()):
+    def __init__(self, messages_placeholder=st.empty()):
         self.messages_placeholder = messages_placeholder
         self.geolocator = Nominatim(user_agent="attendance_mask_app")
 
@@ -56,8 +52,7 @@ class FunctionsUtilis:
     #
     #             return float(tolerance_distance)
 
-
-    def get_location_path(self) :
+    def get_location_path(self):
 
         # Obtenir le chemin d'accueil de l'utilisateur
         home_dir = os.path.expanduser('~')
@@ -65,10 +60,9 @@ class FunctionsUtilis:
         # Construire le chemin complet du dossier Téléchargements
         downloads_dir = os.path.join(home_dir, 'Downloads\location.json')
 
-
         return downloads_dir
 
-    def get_location_navigator(self) :
+    def get_location_navigator(self):
         jscode = """
 
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -96,24 +90,19 @@ class FunctionsUtilis:
             jscode
             , height=0
         )
-    def get_location(self ):
 
+    def get_location(self):
 
-
-        try :
-
-
+        try:
 
             with open(self.get_location_path(), "r") as f:
                 location_data = json.load(f)
-
 
             latitude = location_data['Latitude']
             longitude = location_data['Longitude']
 
             self.messages_placeholder.markdown(f"longitude: {longitude}, latitude: {latitude}")
             sleep(1)
-
 
             if os.path.exists(self.get_location_path()):
                 # supprimer le fichier location pour le mettre à jour avec une nouvelle location
@@ -127,9 +116,6 @@ class FunctionsUtilis:
             self.messages_placeholder.markdown(f"Échec de géolocalisation .")
             return None, None  # Handle location failure
 
-
-
-
     def autoriser_presence(self):
         user_latitude, user_longitude = self.get_location()
         if not user_latitude or not user_latitude:
@@ -141,33 +127,30 @@ class FunctionsUtilis:
             target_latitude = location.latitude
             target_longitude = location.longitude
 
-        except GeocoderServiceError as e: # si le quota de requêtes est atteint pour l'ip actuel dans l'api
+        except GeocoderServiceError as e:  # si le quota de requêtes est atteint pour l'ip actuel dans l'api
 
             # Fournir manuellement les cordonnées geo de l'Ensas
             target_latitude = 32.32638585
             target_longitude = -9.263595630981976
 
         distance_to_target = distance((user_latitude, user_longitude), (target_latitude, target_longitude)).km
-        tolerance_distance = 1500 # 500 meters
+        tolerance_distance = 1500  # 500 meters
         # tolerance_distance = self.get_tolerance_value()
-        if tolerance_distance is not None :
+        if tolerance_distance is not None:
 
             if float(distance_to_target) <= tolerance_distance:
-                self.messages_placeholder.markdown(f"**Présence autorisée**\n **Distance à {target} : {distance_to_target:.2f} km**")
+                self.messages_placeholder.markdown(
+                    f"**Présence autorisée**\n **Distance à {target} : {distance_to_target:.2f} km ou {distance_to_target * 1000:.2f} m**")
                 sleep(1)
 
                 return True
             else:
 
-
-                self.messages_placeholder.markdown(f"**Présence refusée : Vous êtes hors de la zone autorisée**     \n **Distance à {target} : {distance_to_target:.2f} km**")
+                self.messages_placeholder.markdown(
+                    f"**Présence refusée : Vous êtes hors de la zone autorisée**     \n **Distance à {target} : {distance_to_target:.2f} km ou {distance_to_target * 1000:.2f} m**")
 
                 sleep(1)
                 return False
-        # else :
-        #
-        #     sys.exit(0)
-
 
     def read_data(self, form_placeholder):
         max_time_mask_def = 60  # 1 minute
@@ -282,7 +265,7 @@ class FunctionsUtilis:
         return random_string
 
     def markAttendance(self, id, name, starting_year, year, standing, major, total_attendance, last_attendance_time,
-                        total_mask_detected, last_mask_time, messages_placeholder):
+                       total_mask_detected, last_mask_time, messages_placeholder):
         date = datetime.today().strftime('%Y-%m-%d')
         file = 'Excel files/Attendance_' + str(date) + '.csv'
 
@@ -307,10 +290,9 @@ class FunctionsUtilis:
                 f.writelines(
                     f'\n{id};{name};{starting_year};{year};{standing};{major};{total_attendance};{dtString};{total_mask_detected};{dtString}')
 
-                self.show_message( f"Saving student info in an xlsx file", is_success=True)
+                self.show_message(f"Saving student info in an xlsx file", is_success=True)
                 status = True
             else:
                 last_date = raw_dict[id]
 
         return status, last_date
-

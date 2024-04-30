@@ -22,9 +22,8 @@ import random
 
 
 def dashboard():
-
     student_data = db.reference('Students', app=app).get()
-    if student_data is not None :
+    if student_data is not None:
         student_data = dict(student_data)
 
         # Prepare data for visualizations (extract from student_data dictionary)
@@ -34,12 +33,10 @@ def dashboard():
         # Create a Streamlit page for student dashboard
         st.title("Students Dashboard")
 
-
         # delete students
         # Convert student data to a Pandas DataFrame
         student_df = pd.DataFrame(student_data.values())
         student_df.index = [id for id in student_data.keys()]  # Set student ID as index
-
 
         # Function to delete student from Firebase (separate function for security)
         def delete_student_from_firebase(student_id):
@@ -53,10 +50,7 @@ def dashboard():
                 try:
                     bucket.delete_blob(student_image_path)
                 except Exception as e:  # Catch any potential exception
-                    # if "NOT_FOUND" in str(e):  # Check for a string containing "NOT_FOUND"
-                    #     st.info(f"Student image for ID {student_id} not found in Storage.")
-                    # else:
-                    #     st.error(f"Error deleting student image: {e}")  # Log or display the error
+
                     pass
 
                 # Remove student from local data
@@ -68,6 +62,7 @@ def dashboard():
 
                 del student_data[student_id]  # Remove student from dictionary (for UI update)
                 student_df.drop(student_id, inplace=True)  # Remove student from DataFrame
+
                 # Mise à jour de l'encoding
                 with st.spinner('Obtention de l\'encodage des images ...'):
                     # obtention de l'encodage des images
@@ -83,13 +78,10 @@ def dashboard():
                 st.error(f"Student with ID {student_id} not found.")
 
         # Create a Streamlit page for student dashboard
-        st.header("Students list :")
-
-###############################################################
+        st.header(f"Students list : le nombre totale des étudiants : {len(student_data.values())}")
+        st.subheader(f"le nombre totale des étudiants : {len(student_data.values())}")
+        ###############################################################
         table_cols = st.columns(2)
-
-
-
 
         with table_cols[0]:
 
@@ -99,23 +91,21 @@ def dashboard():
 
             for index, row in student_df.iterrows():
                 student_id = index
-                delete_button = st.button(f"Delete {student_id}", type="primary")
+                delete_button = st.button(f"Delete {row['name']}", type="primary", key=str(index))
                 if delete_button:
                     delete_student_from_firebase(student_id)
-
 
         # Total Attendance by Student Graph
         fig1 = px.bar(student_df, x='name', y='total_attendance',
                       title="Le nombre total de présence par étudiant", width=400)
 
-
         # Total mask detected by Student Graph
         fig2 = px.line(student_df, x='name', y='total_mask_detected',
-                                title="Le nombre total de mask détecté par étudiant", width=400)
+                       title="Le nombre total de mask détecté par étudiant", width=400)
 
         attendance_by_major = student_df.groupby('major')['total_mask_detected'].sum().reset_index()
         fig3 = px.pie(attendance_by_major, values='total_mask_detected', names='major',
-                                title="La distribution de port de mask totale par filière", width=400)
+                      title="La distribution de port de mask totale par filière", width=400)
 
         # Standing level by Student Graph
         fig4 = px.bar(student_df, x='name', y='standing',
@@ -123,8 +113,8 @@ def dashboard():
 
         attendance_by_major = student_df.groupby('major')['total_attendance'].sum().reset_index()
         fig5 = px.pie(attendance_by_major, values='total_attendance', names='major',
-                                title="La distribution de présence totale par filière", width=400)
-        
+                      title="La distribution de présence totale par filière", width=400)
+
         # Number of Students by Standing Graph
         standing_counts_df = student_df['standing'].value_counts().reset_index(name='Count')
         fig6 = px.bar(standing_counts_df, x='standing', y='Count',
@@ -135,24 +125,22 @@ def dashboard():
         fig7 = px.pie(starting_year_counts, values='Count', names='starting_year',
                       title="La distribution des étudiants par année d'entrée", width=400)
 
-
         # Student Distribution by Year
         fig8 = px.bar(x=list(year_counts.keys()), y=list(year_counts.values()),
                       title="La distribution des étudiants par année", width=400)
 
-
         # Attendance Distribution
-        fig9 = px.histogram(attendance_data, title="Le nombre d\'etudiants par categories\n en termes du totale de présence ", width=400)
-
+        fig9 = px.histogram(attendance_data,
+                            title="Le nombre d\'etudiants par categories\n en termes du totale de présence ", width=400)
 
         # Year vs. Attendance Box Plot x='starting_year', y='total_attendance'
         year_attendance = [(student['starting_year'], student['total_attendance']) for student in student_data.values()]
         fig10 = px.box(year_attendance, x=0, y=1,
-        title="La distribution de présence (1) par année d'entrée ", width=400)
+                       title="La distribution de présence (1) par année d'entrée ", width=400)
 
         major_attendance = [(student['major'], student['total_attendance']) for student in student_data.values()]
         fig11 = px.scatter(major_attendance, x=0, y=1,
-                         title="La distribution de présence (1) par filière ", width=400)
+                           title="La distribution de présence (1) par filière ", width=400)
 
         standing_attendance = {}
         for student in student_data.values():
@@ -163,10 +151,9 @@ def dashboard():
                     standing_attendance[standing] = []
                 standing_attendance[standing].append(attendance)
         fig12 = px.bar(x=list(standing_attendance.keys()), y=[sum(v) for v in standing_attendance.values()],
-                     title="Le total  de présence par niveau de présence ", width=400)
+                       title="Le total  de présence par niveau de présence ", width=400)
 
-
-####################################################################
+        ####################################################################
         # Define columns , think of the use of a for loop
         st.subheader("La dimension ou l'axe etudiant")
         etudiant_cols = st.columns(3, gap="medium")
@@ -179,16 +166,13 @@ def dashboard():
 
             st.plotly_chart(fig2)
 
-
         with etudiant_cols[2]:
 
             st.plotly_chart(fig4)
 
-
-####################################################################
+        ####################################################################
         st.subheader("La dimension ou l'axe filière")
         filiere_cols = st.columns(3, gap="medium")
-
 
         with filiere_cols[0]:
 
@@ -198,12 +182,11 @@ def dashboard():
 
             st.plotly_chart(fig5)
 
-
-        with filiere_cols [2]:
+        with filiere_cols[2]:
 
             st.plotly_chart(fig11)
 
-####################################################################
+        ####################################################################
         st.subheader("La dimension ou l'axe année et année d'entrée")
         anne_cols = st.columns(3, gap="medium")
 
@@ -215,15 +198,13 @@ def dashboard():
 
             st.plotly_chart(fig8)
 
-
         with anne_cols[2]:
 
             st.plotly_chart(fig10)
 
-####################################################################
+        ####################################################################
         st.subheader("La dimension niveau de présence")
         niv_presence_cols = st.columns(3, gap="medium")
-
 
         with niv_presence_cols[0]:
 
@@ -236,7 +217,6 @@ def dashboard():
         with niv_presence_cols[2]:
 
             st.plotly_chart(fig6)
-
 
 
 def generate_random_id():
@@ -256,8 +236,6 @@ def add_student_data(student_data, image_path=""):
 
         for key, value in data.items():  # for each row in the json format
             ref.child(key).set(value)
-
-
 
 
 def add_data_to_db(form_placeholder):
@@ -297,9 +275,10 @@ def add_data_to_db(form_placeholder):
         submit_button = st.form_submit_button('Ajouter l\'étudiant')
 
     if submit_button:
-        with st.spinner('Adding data to database ...'):
-            # Vérification si l'image a été téléchargée
-            if image_file is not None:
+
+        # Vérification si l'image a été téléchargée
+        if image_file is not None:
+            with st.spinner('Adding data to database ...'):
 
                 # Enregistrement de l'image dans localement
                 image_path = f'{folderPath}/{student_data["id"]}.png'
@@ -309,22 +288,32 @@ def add_data_to_db(form_placeholder):
                 image = Image.open(image_stream)  # Open the image from the stream
                 resized_image = image.resize((216, 216), Image.ANTIALIAS)
 
+                # enregistrement local de l'image
                 with open(image_path, 'wb') as f:
                     resized_image.save(f, 'PNG')  # Save as JPEG
 
-                # Ajout des données à Firebase
-                add_student_data(student_data)
-
-                # Ajout de l'image dans firebase
-                blob = bucket.blob(image_path)  # converting the image to the proper format for storing
-                blob.upload_from_filename(image_path)  # send images to the storage bucket
-
-
                 with st.spinner('Obtention de l\'encodage des images ...'):
                     # obtention de l'encodage des images
-                    encode.get_store_encodings()
-                # Affichage d'un message de confirmation
-                st.success('L\'Étudiant est ajouté avec succès!')
-            else:
-                # Affichage d'un message d'erreur si l'image n'a pas été téléchargée
-                st.error('Veuillez télécharger une image de l\'étudiant.')
+                    encoding_state = encode.get_store_encodings()
+                    if encoding_state:
+
+                        # Ajout des données à Firebase
+                        add_student_data(student_data)
+
+                        # Ajout de l'image dans firebase
+                        blob = bucket.blob(image_path)  # converting the image to the proper format for storing
+                        blob.upload_from_filename(image_path)  # send images to the storage bucket
+
+                        # Affichage d'un message de confirmation
+                        st.success('L\'Étudiant est ajouté avec succès!')
+
+                    else:  # suppression locale de l'image non valide
+                        # Remove student from local data
+
+                        if os.path.exists(image_path):
+                            # supprimer l'étudiant en question
+                            os.remove(image_path)
+                        st.error("Problème d\'encodage : Veuillez choisir une autre image de l\'étudiant.")
+        else:
+            # Affichage d'un message d'erreur si l'image n'a pas été téléchargée
+            st.error('Veuillez télécharger une image de l\'étudiant.')

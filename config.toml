@@ -5,6 +5,8 @@ backgroundColor="#673AB7" # (Purple)
 secondaryBackgroundColor="#778899" # CDCDCD Orange secondary background
 textColor="#FFFFFF"      # Light blue text
 font="serif"           # serif font for readability
+#[client]
+#showErrorDetails = false
 
 
 

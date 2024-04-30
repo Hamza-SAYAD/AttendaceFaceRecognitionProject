@@ -1,0 +1,7 @@
+id; name; starting_year; year; standing; major; total_attendance; last_attendance_time; total_mask_detected;last_mask_time
+932574;hamza sayad;2020;3;G;INFO;15;00:25:06;4;00:25:06
+579013;Mark Zuckerberg;2020;2;B;GATE;6;00:51:25;3;00:51:25
+682358;Elon Musk;2021;2;B;INDUS;2;01:02:21;0;01:02:21
+367828;Jeff Bezos;2022;3;B;GTR;3;01:02:34;0;01:02:34
+888041;Jeff Bezos;2020;1;B;AI;0;16:29:05;0;16:29:05
+991654;Othman Trigui;2020;1;G;AI;9;16:29:27;0;16:29:27
