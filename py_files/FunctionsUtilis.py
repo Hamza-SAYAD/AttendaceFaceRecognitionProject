@@ -15,6 +15,8 @@ from geopy.exc import GeocoderServiceError
 from geopy.geocoders import Nominatim
 
 from geopy.distance import distance
+
+from firebase_admin import auth , exceptions
 import json
 
 
@@ -23,6 +25,39 @@ class FunctionsUtilis:
     def __init__(self, messages_placeholder=st.empty()):
         self.messages_placeholder = messages_placeholder
         self.geolocator = Nominatim(user_agent="attendance_mask_app")
+
+
+
+    def  register(self, app, email, password):
+
+        # register
+        # email = 'utilisateur@exemple.com'
+        # password = 'motdepassefort'
+
+        try:
+            user = auth.get_user_by_email(email,  app= app)
+            # user = auth.generate_sign_in_with_email_link(email, app=app)
+
+            # print('Connexion réussie:', user.uid)
+            self.show_message(is_success=True, text=f'Connexion réussie: {user.uid}', delai=3 )
+            return True
+        except exceptions.FirebaseError as error:
+            # print('Échec de la connexion:', error)
+            self.show_message(is_success=False, text=f'Échec de la connexion: {error}', delai=3 )
+            return False
+
+    def login(self, app, email, password):
+        try:
+            user = auth.create_user(email=email, password=password, app=app)
+            # print('Utilisateur créé avec succès:', user.uid)
+
+            self.show_message(is_success=True, text=f'Utilisateur créé avec succès: {user.uid}', delai=3)
+            return True
+        except exceptions.FirebaseError as error:
+            # print('Échec de la création de l\'utilisateur:', error)
+            self.show_message(is_success=False, text=f'Échec de la création de l\'utilisateur: {error}', delai=3)
+            return False
+
 
     # def get_tolerance_value(self):
     #     tolerance_distance = 5
@@ -66,7 +101,50 @@ class FunctionsUtilis:
         jscode = """
 
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+                        
                     <script type="text/javascript">
+                    /*// config de la base de données,ceci ne peut aura lieu qu'après l'intégration de login et authentification, afin d'enregistrer les cordonnées de localisation chez l'utilisateur connecté
+                    // Import the functions you need from the SDKs you need
+                        import { initializeApp } from "firebase/app";
+                        import { getDatabase, ref, set, get, child } from "firebase/app";
+                        //import { getAnalytics } from "firebase/analytics";
+                        // TODO: Add SDKs for Firebase products that you want to use
+                        // https://firebase.google.com/docs/web/setup#available-libraries
+                        
+                        // Your web app's Firebase configuration
+                        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+                        const firebaseConfig = {
+                          apiKey: "AIzaSyDmnt05H_hnLTuTmIjD1cfOJnav4oeHaU8",
+                          authDomain: "realtimeensasattendancesystem.firebaseapp.com",
+                          databaseURL: "https://realtimeensasattendancesystem-default-rtdb.firebaseio.com",
+                          projectId: "realtimeensasattendancesystem",
+                          storageBucket: "realtimeensasattendancesystem.appspot.com",
+                          messagingSenderId: "52022986400",
+                          appId: "1:52022986400:web:529bfb74111df4771fabc5",
+                          measurementId: "G-L27T5JC965"
+                        };
+                        
+                        // Initialize Firebase
+                        const app = initializeApp(firebaseConfig);
+                        //const analytics = getAnalytics(app);
+                        const database = firebase.database();
+                        const reference = database.ref('locations');
+                        
+                        reference.set({
+                          latitude: latitude,
+                          longitude: longitude
+                        })
+                        .then(() => {
+                          console.log("Coordonnées stockées avec succès dans Firebase");
+                        })
+                        .catch(error => {
+                          console.error("Échec du stockage des coordonnées dans Firebase:", error);
+                        });
+
+
+                        */
+                        
+                        
                      if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(function(position) {
 
