@@ -11,6 +11,10 @@ from PIL import Image
 import plotly.express as px
 import pandas as pd
 from firebase_admin import db
+from py_files.FunctionsUtilis import FunctionsUtilis
+from firebase_admin import auth
+
+functions = FunctionsUtilis()
 
 bucket, app = FirebaseManager().__enter__()
 
@@ -49,9 +53,13 @@ def dashboard():
                 student_image_path = f"Images/{student_id}.png"
                 try:
                     bucket.delete_blob(student_image_path)
+                    # delete user from authentification service
+                    auth.delete_user(student_id, app=app)
+
                 except Exception as e:  # Catch any potential exception
 
-                    pass
+                    st.error(e)
+
 
                 # Remove student from local data
 
@@ -68,10 +76,8 @@ def dashboard():
                     # obtention de l'encodage des images
                     encode.get_store_encodings()
                 st.success(f"Student with ID {student_id} deleted successfully!")
-                # refresh
-                st.rerun()  # Trigger automatic refresh
-                sleep(1)  # Add a slight delay to avoid rapid refreshes (optional)
-                sys.exit(0)
+                functions.refresh()
+
 
 
             else:
@@ -242,6 +248,7 @@ def add_data_to_db(form_placeholder):
     # Définition des options des menus déroulants
     specialties = ["AI", "INFO", "GTR", "GATE", "INDUS"]
     years = [1, 2, 3, 4, 5]
+    role = ["utilisateur simple ", "admin" ]
 
     # Définition du formulaire
     student_data = {}
@@ -254,7 +261,7 @@ def add_data_to_db(form_placeholder):
 
         # Champs du formulaire
         st.header("Adding student data : ")
-        student_data['id'] = generate_random_id()
+        # student_data['id'] = generate_random_id()
         st.subheader("Veuillez saisir Nom complet : ")
         student_data['name'] = st.text_input('Nom complet')
         st.subheader("Veuillez choisir une spécialité : ")
@@ -268,52 +275,82 @@ def add_data_to_db(form_placeholder):
         student_data['last_attendance_time'] = "2024-04-11 00:54:34"
         student_data['total_mask_detected'] = 0
         student_data['last_mask_time'] = "2024-04-11 00:54:34"
+        st.subheader("Veuillez saisir un email valide: ")
+        email = st.text_input('Votre email  :')
+        displayname = student_data['name']
+        st.subheader("Veuillez choisir le rôle : ")
+        user_role = st.selectbox('Rôle', role)
         st.subheader("Veuillez choisir une image (max 3MO) : ")
         image_file = st.file_uploader('Image de l\'étudiant')
 
         # Bouton de soumission
-        submit_button = st.form_submit_button('Ajouter l\'étudiant')
+        submit_button = st.form_submit_button('Créer et ajouter l\'étudiant')
 
     if submit_button:
 
         # Vérification si l'image a été téléchargée
         if image_file is not None:
-            with st.spinner('Adding data to database ...'):
 
-                # Enregistrement de l'image dans localement
-                image_path = f'{folderPath}/{student_data["id"]}.png'
 
-                image_data = image_file.read()
-                image_stream = BytesIO(image_data)  # Create an in-memory stream from image data
-                image = Image.open(image_stream)  # Open the image from the stream
-                resized_image = image.resize((216, 216), Image.ANTIALIAS)
+                # creation de l'utilisateur
+                if email is not None and displayname is not None:
+                    with st.spinner("Inscription de l'utilisateur est en cours ..."):
+                        sleep(1)
+                        if user_role == "admin":
+                            is_admin = True
+                        else :
+                            is_admin = False
+                        is_registred, uid = functions.register(app, email, displayname, is_admin)
+                        # print(f"Le user : {uid}")
+                    # return is_registred
+                else:
+                    functions.show_message(f"Veuillez remplir l'email et le nom complet !! .", is_error=True)
+                # print("avant user_role")
+                if uid is not None:
+                    with st.spinner('Adding data to database ...'):
+                        # print(user_role)
+                        student_data["id"] = uid
 
-                # enregistrement local de l'image
-                with open(image_path, 'wb') as f:
-                    resized_image.save(f, 'PNG')  # Save as JPEG
+                        # Enregistrement de l'image dans localement
+                        image_path = f'{folderPath}/{student_data["id"]}.png'
 
-                with st.spinner('Obtention de l\'encodage des images ...'):
-                    # obtention de l'encodage des images
-                    encoding_state = encode.get_store_encodings()
-                    if encoding_state:
+                        image_data = image_file.read()
+                        image_stream = BytesIO(image_data)  # Create an in-memory stream from image data
+                        image = Image.open(image_stream)  # Open the image from the stream
+                        resized_image = image.resize((216, 216), Image.ANTIALIAS)
 
-                        # Ajout des données à Firebase
-                        add_student_data(student_data)
+                        # enregistrement local de l'image
+                        with open(image_path, 'wb') as f:
+                            resized_image.save(f, 'PNG')  # Save as JPEG
 
-                        # Ajout de l'image dans firebase
-                        blob = bucket.blob(image_path)  # converting the image to the proper format for storing
-                        blob.upload_from_filename(image_path)  # send images to the storage bucket
+                        with st.spinner('Obtention de l\'encodage des images ...'):
+                            sleep(3)
+                            # obtention de l'encodage des images
+                            encoding_state = encode.get_store_encodings()
+                            if encoding_state:
+                                # student_data['latitude'] = 0
+                                # student_data['longitude'] = 0
+                                # Ajout des données à Firebase
+                                add_student_data(student_data)
 
-                        # Affichage d'un message de confirmation
-                        st.success('L\'Étudiant est ajouté avec succès!')
+                                # Ajout de l'image dans firebase
+                                blob = bucket.blob(image_path)  # converting the image to the proper format for storing
+                                blob.upload_from_filename(image_path)  # send images to the storage bucket
 
-                    else:  # suppression locale de l'image non valide
-                        # Remove student from local data
+                                # Affichage d'un message de confirmation
+                                st.success('L\'Étudiant est ajouté avec succès!')
+                                sleep(3)
+                            else:  # suppression locale de l'image non valide
+                                # Remove student from local data
 
-                        if os.path.exists(image_path):
-                            # supprimer l'étudiant en question
-                            os.remove(image_path)
-                        st.error("Problème d\'encodage : Veuillez choisir une autre image de l\'étudiant.")
+                                if os.path.exists(image_path):
+                                    # supprimer l'étudiant en question
+                                    os.remove(image_path)
+                                st.error("Problème d\'encodage : Veuillez choisir une autre image de l\'étudiant.")
+
+                else:
+                    functions.show_message(f"Un problème imprévue lors de création d'utilisateur ", is_error=True,
+                                           delai=5)
         else:
             # Affichage d'un message d'erreur si l'image n'a pas été téléchargée
             st.error('Veuillez télécharger une image de l\'étudiant.')

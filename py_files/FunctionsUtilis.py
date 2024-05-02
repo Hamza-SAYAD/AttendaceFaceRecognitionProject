@@ -1,8 +1,9 @@
+import sys
 
 import streamlit as st
 import os
 
-from time import sleep
+from time import sleep, time
 import cv2
 
 import cvzone
@@ -16,7 +17,7 @@ from geopy.geocoders import Nominatim
 
 from geopy.distance import distance
 
-from firebase_admin import auth , exceptions
+from firebase_admin import auth, exceptions
 import json
 
 
@@ -26,38 +27,210 @@ class FunctionsUtilis:
         self.messages_placeholder = messages_placeholder
         self.geolocator = Nominatim(user_agent="attendance_mask_app")
 
-
-
-    def  register(self, app, email, password):
-
-        # register
-        # email = 'utilisateur@exemple.com'
-        # password = 'motdepassefort'
-
-        try:
-            user = auth.get_user_by_email(email,  app= app)
-            # user = auth.generate_sign_in_with_email_link(email, app=app)
-
-            # print('Connexion réussie:', user.uid)
-            self.show_message(is_success=True, text=f'Connexion réussie: {user.uid}', delai=3 )
-            return True
-        except exceptions.FirebaseError as error:
-            # print('Échec de la connexion:', error)
-            self.show_message(is_success=False, text=f'Échec de la connexion: {error}', delai=3 )
-            return False
-
     def login(self, app, email, password):
-        try:
-            user = auth.create_user(email=email, password=password, app=app)
-            # print('Utilisateur créé avec succès:', user.uid)
 
-            self.show_message(is_success=True, text=f'Utilisateur créé avec succès: {user.uid}', delai=3)
-            return True
-        except exceptions.FirebaseError as error:
-            # print('Échec de la création de l\'utilisateur:', error)
-            self.show_message(is_success=False, text=f'Échec de la création de l\'utilisateur: {error}', delai=3)
+        try:
+
+            user_by_email = auth.get_user_by_email(email, app=app)
+            # user_by_id = auth.get_user(password, app=app )
+
+            if user_by_email.uid == password:
+                # print(user_by_email)
+                # if user_by_email == user_by_id :
+                # print('Connexion réussie:', user_by_email.uid)
+                if email == "admin@gmail.com" :
+                    auth.update_user(user_by_email.uid, custom_claims={'admin': True}, app=app)
+
+                # auth.update_user(user_by_email.uid, custom_claims={'admin': True}, app=app)
+                if 'username' not in st.session_state:  # insertion de email et user name dans la session
+                    st.session_state['username'] = None
+
+                # is_registered = functions.register_form(app)
+                if st.session_state["username"] is None:  # si l'utilisateur n'est pas logged in
+                    st.session_state["username"] = user_by_email.display_name
+
+                if 'user_id' not in st.session_state:  # insertion de email et user name dans la session
+                    st.session_state['user_id'] = None
+
+                # is_registered = functions.register_form(app)
+                if st.session_state["user_id"] is None:  # si l'utilisateur n'est pas logged in
+                    st.session_state["user_id"] = user_by_email.uid
+
+                if 'is_admin' not in st.session_state:  # insertion de email et user name dans la session
+                    st.session_state['is_admin'] = None
+
+                # is_registered = functions.register_form(app)
+                if st.session_state["is_admin"] is None:  # si l'utilisateur n'est pas logged in
+                    st.session_state["is_admin"] = self.is_admin(user_by_email.uid, app)
+
+                self.show_message(is_success=True,
+                                  text=f'Connexion réussie ! Vous  êtes connecté   : {user_by_email.display_name}',
+                                  delai=3)
+                # self.refresh()
+                return True
+            else:
+                self.show_message(is_success=False, text=f'Échec de login: Mot de passe incorrect !!', delai=5)
+                self.refresh()
+                return False
+
+        except Exception as error:
+            # print('Échec de la connexion:', error)
+            # print(f'Échec de login: {error}')
+            self.show_message(is_success=False, text=f'Échec de login: {error}', delai=3)
+            self.refresh()
             return False
 
+    def register(self, app, email, displayname, is_admin):
+        userid = None
+        try:
+            user = auth.create_user(email=email, app=app, display_name=displayname)
+            # print('Utilisateur créé avec succès:', user.uid)
+            # auth.create_session_cookie()
+            if email == "admin@gmail.com" or is_admin:
+                auth.update_user(user.uid, custom_claims={'admin': True}, app=app)
+            else:
+                auth.update_user(user.uid, custom_claims={'admin': False}, app=app)
+            self.show_message(is_success=True,
+                              text=f"Utilisateur créé avec succès, votre mot de passe est: {user.uid} (vous devez l'utiliser pour s'authentifier)",
+                              delai=5)
+            # print(f"\n\nLe user de register : {user.uid}")
+            userid = user.uid
+            return True, userid
+        except Exception as error:
+            # print('Échec de la création de l\'utilisateur:', error)
+            st.error(f"Échec d'\inscription: {error}")
+            if userid is not None:
+                auth.delete_user(userid)
+            # self.refresh()
+            return False, None
+
+    def is_admin(self, user_id, app):
+        user = auth.get_user(user_id, app=app)
+        if user.custom_claims is not None:
+            return user.custom_claims.get('admin', False)
+        else:
+            return False
+
+    def test_admin(self, app):
+        # User login and ID retrieval (replace with your login logic)
+        user_id = st.session_state['user_id']
+
+        if user_id:
+            if self.is_admin(user_id, app):
+                st.write("Welcome, Admin!")
+                # Display admin-specific functionalities
+                return True
+            else:
+                st.write("Welcome, User!")
+                return False
+            # Display regular user functionalities
+
+    # else:
+    #
+    # # Login form or instructions
+    # # ...
+
+    def register_form(self, app):
+        if st.session_state["is_logged_in"]:
+            current_time = time()
+            elapsed_t = current_time - st.session_state['starting_time']
+            if elapsed_t < 0:
+                elapsed_t = 0
+            self.test_admin(app)
+            # self.space(3)
+            st.success(
+                f" Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)"
+                )
+            deconnec_button = st.button("Deconnexion")
+            if deconnec_button:
+                self.logout()
+        # else :
+        #     register_form_placeholder = st.empty()
+        #     login_button_placeholder = st.empty()
+        #     with register_form_placeholder.form(key='register_form'):
+        #
+        #         st.header("Formulaire d'inscription  : ")
+        #
+        #         email = st.text_input('Votre email (doit être valide) :')
+        #
+        #         displayname = st.text_input('Nom et prenom :')
+        #
+        #         submit_button = st.form_submit_button("S'inscrire")
+        #     login_button = login_button_placeholder.button("S'authentifier")
+        #     # print("\n\navant submit_button register")
+        #     if submit_button:
+        #         # print("\ndebut de  submit_button register")
+        #         register_form_placeholder.empty()
+        #         login_button_placeholder.empty()
+        #         if email is not None and displayname is not None:
+        #             with st.spinner('Inscription est en cours ...'):
+        #                 sleep(1)
+        #                 is_registred = self.register(app, email, displayname)
+        #             return is_registred
+        #         else :
+        #             self.show_message(f"Veuillez remplir tous les champs !! .", is_error=True)
+        #         # print("\nfin de  submit_button register")
+        #     elif login_button:
+        #         register_form_placeholder.empty()
+        #         login_button_placeholder.empty()
+        #         self.login_form(app)
+
+    def login_form(self, app):
+        if st.session_state["is_logged_in"]:
+            deconnec_button = st.button("Deconnexion")
+            if deconnec_button:
+                self.logout()
+        else:
+            login_form_placeholder = st.empty()
+            register_button_placeholder = st.empty()
+
+            with login_form_placeholder.form(key='login_form'):
+
+                st.header("Formulaire de login  : ")
+
+                email = st.text_input('Votre email (doit être valide) :')
+
+                password = st.text_input('Votre password :', type="password")
+
+                submit_button = st.form_submit_button("S'authentifier")
+            # register_button = register_button_placeholder.button("S'inscrire")
+
+            if submit_button:
+                login_form_placeholder.empty()
+                register_button_placeholder.empty()
+                if email is not None and password is not None:
+                    with st.spinner('Authentification est en cours ...'):
+                        sleep(1)
+                        is_logged_in = self.login(app, email, password)
+                        print(is_logged_in)
+                    return is_logged_in
+                else:
+                    self.show_message(f"Veuillez remplir tous les champs !! .", is_error=True)
+            # elif register_button:
+            #     login_form_placeholder.empty()
+            #     register_button_placeholder.empty()
+            #     self.register_form(app)
+
+    def logout(self):
+        with st.spinner('Deconnexion est en cours ...'):
+            sleep(2)
+            st.session_state.clear()
+            # st.session_state["is_logged_in"] = None
+        self.show_message(is_success=True,
+                          text=f"Vous avez déconnecté avec success!",
+                          delai=3)
+        # st.rerun()
+
+        self.refresh()
+
+    def refresh(self):
+        st.rerun()  # Trigger automatic refresh
+        sleep(1)  # Add a slight delay to avoid rapid refreshes (optional)
+        sys.exit(0)
+
+    def space(self, length):
+        for i in range(length * 2):
+            st.write("\n")
 
     # def get_tolerance_value(self):
     #     tolerance_distance = 5
@@ -173,11 +346,15 @@ class FunctionsUtilis:
 
         try:
 
-            with open(self.get_location_path(), "r") as f:
-                location_data = json.load(f)
+            if st.session_state['location_data'] is None:
+                with open(self.get_location_path(), "r") as f:
+                    location_data = json.load(f)
 
-            latitude = location_data['Latitude']
-            longitude = location_data['Longitude']
+                # print(location_data)
+                st.session_state['location_data'] = location_data
+
+            latitude = st.session_state['location_data']['Latitude']
+            longitude = st.session_state['location_data']['Longitude']
 
             self.messages_placeholder.markdown(f"longitude: {longitude}, latitude: {latitude}")
             sleep(1)
