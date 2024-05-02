@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-import sys
+
 from time import sleep
 
 from py_files.FirebaseManager import FirebaseManager
@@ -84,20 +84,21 @@ def dashboard():
                 st.error(f"Student with ID {student_id} not found.")
 
         # Create a Streamlit page for student dashboard
-        st.header(f"Students list : le nombre totale des étudiants : {len(student_data.values())}")
+        st.header(f"Students list : ")
         st.subheader(f"le nombre totale des étudiants : {len(student_data.values())}")
         ###############################################################
-        table_cols = st.columns(2)
+        table_cols = st.columns([4, 1])
 
         with table_cols[0]:
 
             student_table = st.table(student_df[['name', 'major', 'starting_year', 'total_attendance', 'standing']])
 
         with table_cols[1]:
-
+            # functions.space(1) Delete {row['name']} , use_container_width=True
             for index, row in student_df.iterrows():
                 student_id = index
-                delete_button = st.button(f"Delete {row['name']}", type="primary", key=str(index))
+                delete_button = st.button(f":wastebasket: {row['name']}",  key=str(index), help=f":rotating_light: Delete {row['name']}")
+
                 if delete_button:
                     delete_student_from_firebase(student_id)
 
@@ -261,7 +262,7 @@ def add_data_to_db(form_placeholder):
 
         # Champs du formulaire
         st.header("Adding student data : ")
-        # student_data['id'] = generate_random_id()
+
         st.subheader("Veuillez saisir Nom complet : ")
         student_data['name'] = st.text_input('Nom complet')
         st.subheader("Veuillez choisir une spécialité : ")
@@ -301,14 +302,13 @@ def add_data_to_db(form_placeholder):
                         else :
                             is_admin = False
                         is_registred, uid = functions.register(app, email, displayname, is_admin)
-                        # print(f"Le user : {uid}")
-                    # return is_registred
+
                 else:
                     functions.show_message(f"Veuillez remplir l'email et le nom complet !! .", is_error=True)
-                # print("avant user_role")
+
                 if uid is not None:
                     with st.spinner('Adding data to database ...'):
-                        # print(user_role)
+
                         student_data["id"] = uid
 
                         # Enregistrement de l'image dans localement
@@ -328,8 +328,7 @@ def add_data_to_db(form_placeholder):
                             # obtention de l'encodage des images
                             encoding_state = encode.get_store_encodings()
                             if encoding_state:
-                                # student_data['latitude'] = 0
-                                # student_data['longitude'] = 0
+
                                 # Ajout des données à Firebase
                                 add_student_data(student_data)
 

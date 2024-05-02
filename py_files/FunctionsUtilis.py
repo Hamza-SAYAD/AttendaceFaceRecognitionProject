@@ -17,7 +17,7 @@ from geopy.geocoders import Nominatim
 
 from geopy.distance import distance
 
-from firebase_admin import auth, exceptions
+from firebase_admin import auth
 import json
 
 
@@ -32,41 +32,37 @@ class FunctionsUtilis:
         try:
 
             user_by_email = auth.get_user_by_email(email, app=app)
-            # user_by_id = auth.get_user(password, app=app )
+
 
             if user_by_email.uid == password:
-                # print(user_by_email)
-                # if user_by_email == user_by_id :
-                # print('Connexion réussie:', user_by_email.uid)
+
                 if email == "admin@gmail.com" :
                     auth.update_user(user_by_email.uid, custom_claims={'admin': True}, app=app)
 
-                # auth.update_user(user_by_email.uid, custom_claims={'admin': True}, app=app)
+                if 'email' not in st.session_state:  # insertion de email et user name dans la session
+                    st.session_state['email'] = None
+                if st.session_state["email"] is None:  # si l'utilisateur n'est pas logged in
+                    st.session_state["email"] = user_by_email.email
+
                 if 'username' not in st.session_state:  # insertion de email et user name dans la session
                     st.session_state['username'] = None
-
-                # is_registered = functions.register_form(app)
                 if st.session_state["username"] is None:  # si l'utilisateur n'est pas logged in
                     st.session_state["username"] = user_by_email.display_name
 
                 if 'user_id' not in st.session_state:  # insertion de email et user name dans la session
                     st.session_state['user_id'] = None
-
-                # is_registered = functions.register_form(app)
                 if st.session_state["user_id"] is None:  # si l'utilisateur n'est pas logged in
                     st.session_state["user_id"] = user_by_email.uid
 
                 if 'is_admin' not in st.session_state:  # insertion de email et user name dans la session
                     st.session_state['is_admin'] = None
-
-                # is_registered = functions.register_form(app)
                 if st.session_state["is_admin"] is None:  # si l'utilisateur n'est pas logged in
                     st.session_state["is_admin"] = self.is_admin(user_by_email.uid, app)
 
                 self.show_message(is_success=True,
                                   text=f'Connexion réussie ! Vous  êtes connecté   : {user_by_email.display_name}',
                                   delai=3)
-                # self.refresh()
+
                 return True
             else:
                 self.show_message(is_success=False, text=f'Échec de login: Mot de passe incorrect !!', delai=5)
@@ -74,8 +70,7 @@ class FunctionsUtilis:
                 return False
 
         except Exception as error:
-            # print('Échec de la connexion:', error)
-            # print(f'Échec de login: {error}')
+
             self.show_message(is_success=False, text=f'Échec de login: {error}', delai=3)
             self.refresh()
             return False
@@ -84,8 +79,7 @@ class FunctionsUtilis:
         userid = None
         try:
             user = auth.create_user(email=email, app=app, display_name=displayname)
-            # print('Utilisateur créé avec succès:', user.uid)
-            # auth.create_session_cookie()
+
             if email == "admin@gmail.com" or is_admin:
                 auth.update_user(user.uid, custom_claims={'admin': True}, app=app)
             else:
@@ -93,11 +87,11 @@ class FunctionsUtilis:
             self.show_message(is_success=True,
                               text=f"Utilisateur créé avec succès, votre mot de passe est: {user.uid} (vous devez l'utiliser pour s'authentifier)",
                               delai=5)
-            # print(f"\n\nLe user de register : {user.uid}")
+
             userid = user.uid
             return True, userid
         except Exception as error:
-            # print('Échec de la création de l\'utilisateur:', error)
+
             st.error(f"Échec d'\inscription: {error}")
             if userid is not None:
                 auth.delete_user(userid)
@@ -112,23 +106,18 @@ class FunctionsUtilis:
             return False
 
     def test_admin(self, app):
-        # User login and ID retrieval (replace with your login logic)
+        # User login and ID retrieval
         user_id = st.session_state['user_id']
 
         if user_id:
             if self.is_admin(user_id, app):
                 st.write("Welcome, Admin!")
-                # Display admin-specific functionalities
+
                 return True
             else:
                 st.write("Welcome, User!")
                 return False
-            # Display regular user functionalities
 
-    # else:
-    #
-    # # Login form or instructions
-    # # ...
 
     def register_form(self, app):
         if st.session_state["is_logged_in"]:
@@ -137,43 +126,14 @@ class FunctionsUtilis:
             if elapsed_t < 0:
                 elapsed_t = 0
             self.test_admin(app)
-            # self.space(3)
+
             st.success(
                 f" Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)"
                 )
             deconnec_button = st.button("Deconnexion")
             if deconnec_button:
                 self.logout()
-        # else :
-        #     register_form_placeholder = st.empty()
-        #     login_button_placeholder = st.empty()
-        #     with register_form_placeholder.form(key='register_form'):
-        #
-        #         st.header("Formulaire d'inscription  : ")
-        #
-        #         email = st.text_input('Votre email (doit être valide) :')
-        #
-        #         displayname = st.text_input('Nom et prenom :')
-        #
-        #         submit_button = st.form_submit_button("S'inscrire")
-        #     login_button = login_button_placeholder.button("S'authentifier")
-        #     # print("\n\navant submit_button register")
-        #     if submit_button:
-        #         # print("\ndebut de  submit_button register")
-        #         register_form_placeholder.empty()
-        #         login_button_placeholder.empty()
-        #         if email is not None and displayname is not None:
-        #             with st.spinner('Inscription est en cours ...'):
-        #                 sleep(1)
-        #                 is_registred = self.register(app, email, displayname)
-        #             return is_registred
-        #         else :
-        #             self.show_message(f"Veuillez remplir tous les champs !! .", is_error=True)
-        #         # print("\nfin de  submit_button register")
-        #     elif login_button:
-        #         register_form_placeholder.empty()
-        #         login_button_placeholder.empty()
-        #         self.login_form(app)
+
 
     def login_form(self, app):
         if st.session_state["is_logged_in"]:
@@ -193,7 +153,6 @@ class FunctionsUtilis:
                 password = st.text_input('Votre password :', type="password")
 
                 submit_button = st.form_submit_button("S'authentifier")
-            # register_button = register_button_placeholder.button("S'inscrire")
 
             if submit_button:
                 login_form_placeholder.empty()
@@ -202,24 +161,20 @@ class FunctionsUtilis:
                     with st.spinner('Authentification est en cours ...'):
                         sleep(1)
                         is_logged_in = self.login(app, email, password)
-                        print(is_logged_in)
+
                     return is_logged_in
                 else:
                     self.show_message(f"Veuillez remplir tous les champs !! .", is_error=True)
-            # elif register_button:
-            #     login_form_placeholder.empty()
-            #     register_button_placeholder.empty()
-            #     self.register_form(app)
 
     def logout(self):
         with st.spinner('Deconnexion est en cours ...'):
             sleep(2)
             st.session_state.clear()
-            # st.session_state["is_logged_in"] = None
+        self.messages_placeholder.empty()
         self.show_message(is_success=True,
                           text=f"Vous avez déconnecté avec success!",
                           delai=3)
-        # st.rerun()
+
 
         self.refresh()
 
@@ -229,7 +184,7 @@ class FunctionsUtilis:
         sys.exit(0)
 
     def space(self, length):
-        for i in range(length * 2):
+        for i in range(length ):
             st.write("\n")
 
     # def get_tolerance_value(self):
@@ -350,7 +305,7 @@ class FunctionsUtilis:
                 with open(self.get_location_path(), "r") as f:
                     location_data = json.load(f)
 
-                # print(location_data)
+
                 st.session_state['location_data'] = location_data
 
             latitude = st.session_state['location_data']['Latitude']
@@ -390,7 +345,7 @@ class FunctionsUtilis:
 
         distance_to_target = distance((user_latitude, user_longitude), (target_latitude, target_longitude)).km
         tolerance_distance = 1500  # 500 meters
-        # tolerance_distance = self.get_tolerance_value()
+
         if tolerance_distance is not None:
 
             if float(distance_to_target) <= tolerance_distance:
@@ -461,7 +416,7 @@ class FunctionsUtilis:
 
                 return max_time_mask, max_time_remark, standing_tresh
 
-    def adding_info(self, imgBackground, total_attendance, major, id, total_mask_detected, year, standing,
+    def adding_info(self, imgBackground, total_attendance, major, email, total_mask_detected, year, standing,
                     name, starting_year):
         cv2.putText(imgBackground, str(total_attendance), (861, 125),
                     cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
@@ -469,8 +424,8 @@ class FunctionsUtilis:
                     cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
         cv2.putText(imgBackground, str(major), (1026, 530),
                     cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
-        cv2.putText(imgBackground, str(id), (1026, 480),
-                    cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+        cv2.putText(imgBackground, str(email), (948, 480),
+                    cv2.FONT_HERSHEY_COMPLEX, 0.4, (255, 255, 255), 1)
         cv2.putText(imgBackground, str(total_mask_detected), (945, 635),
                     cv2.FONT_HERSHEY_COMPLEX, 0.6, (100, 100, 100), 1)
         cv2.putText(imgBackground, str(year), (1045, 635),

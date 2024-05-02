@@ -17,8 +17,8 @@ class FirebaseManager:
 
     def __enter__(self):
         # Initialize Firebase app
-        # self.app = firebase_admin.initialize_app(...)
-        if self.app == None:
+
+        if self.app == None: # singleton
             cred = credentials.Certificate("serviceAccountKey.json")
             self.app = firebase_admin.initialize_app(cred, {
                 'databaseURL': "https://realtimeensasattendancesystem-default-rtdb.firebaseio.com/",
