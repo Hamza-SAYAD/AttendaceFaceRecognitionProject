@@ -80,12 +80,6 @@ class FunctionsUtilis:
         sender_email = "luvthakur262001@gmail.com"
         sender_password = "blwq zpnq mbda zwac"
 
-        # context = ssl.create_default_context()
-        # context.check_hostname = False  # Might be needed for some servers (caution: security risk)
-        # context.set_ciphers('DEFAULT@SECLEVEL=1')  # Example cipher suite selection
-        #
-        # with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-
         # Create a secure connection with the SMTP server
         with smtplib.SMTP_SSL(smtp_server, port) as server:
             server.login(sender_email, sender_password)
@@ -102,23 +96,18 @@ class FunctionsUtilis:
             try:
                 # Send the email
                 server.sendmail(sender_email, recipient_email, message.as_string())
-                st.success("Email sent successfully!")
+                self.show_message(is_success=True,
+                                  text='Email sent successfully!',
+                                  delai=3)
+
             except Exception as e:
-                st.error(f"Error sending email: {e}")
+                self.show_message(is_error=True,
+                                  text=f"Error sending email: {e}",
+                                  delai=3)
 
 
-    # def send_mail(self , subject, body, recipient_email = "kooolmnjksiiolm@gmail.com"):
-    #     # Streamlit UI elements to collect recipient email, subject, and body
-    #     # recipient_email = "kooolmnjksiiolm@gmail.com"
-    #     # subject = "Your Streamlit Notification"
-    #     # body = "Your notification content here (e.g., list of people without masks)"
-    #
-    #     # if st.button("Send Email"):
-    #     try:
-    #         self.send_email(recipient_email, subject, body)
-    #         st.success("Email sent successfully!")
-    #     except Exception as e:
-    #         st.error(f"Error sending email: {e}")
+
+
 
     def login(self, app, email, password):
 
@@ -177,6 +166,17 @@ class FunctionsUtilis:
                 auth.update_user(user.uid, custom_claims={'admin': True}, app=app)
             else:
                 auth.update_user(user.uid, custom_claims={'admin': False}, app=app)
+            body = \
+                f"""
+                            Bonjour Mr {user.display_name}, j'espère que vous allez bien ,
+                    On vous adresse en vue de vous informer que votre compte scolaire dont l'id 
+                    est {user.uid} a été créé avec succès !
+
+                    et merci ,
+                         cordialement
+                    """
+
+            self.send_email(body=body, subject="Etat de creation de votre compte scolaire ")
             self.show_message(is_success=True,
                               text=f"Utilisateur créé avec succès, votre mot de passe est: {user.uid} (vous devez l'utiliser pour s'authentifier)",
                               delai=5)
