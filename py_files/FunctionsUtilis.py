@@ -1,3 +1,6 @@
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import sys
 
 import streamlit as st
@@ -26,6 +29,96 @@ class FunctionsUtilis:
     def __init__(self, messages_placeholder=st.empty()):
         self.messages_placeholder = messages_placeholder
         self.geolocator = Nominatim(user_agent="attendance_mask_app")
+
+
+    # def send_email(self):
+    #     import streamlit as st
+    #     import requests  # Assuming you're using requests for the API call
+    #
+    #     # # Streamlit form to collect email address (with consent checkbox)
+    #     # email = st.text_input("Enter your email address:")
+    #     # consent_checkbox = st.checkbox("I consent to receiving notifications")
+    #     #
+    #     # send_button = st.button("Send Notification")
+    #     # SG.PctTex3-5N68f7UtvK1cBg .Eo2Mtarx1C0oHy3bYGI0AqJFzLB-gop0oD3417kb6so
+    #     # if send_button and consent_checkbox: ngeVfQFYQlKU0ufo8x5d1A
+    #     # Replace with your SendGrid API endpoint and details PctTex3-5N68f7UtvK1cBg
+    #     url = "https://api.sendgrid.com/v3/mail/send"
+    #     headers = {
+    #         "Authorization": "ngeVfQFYQlKU0ufo8x5d1A",
+    #         "Content-Type": "application/json"
+    #     }
+    #     data = {
+    #         "personalizations": [
+    #             {
+    #                 "to": [{"email": "hamzasayad1736@gmail.com"}]
+    #             }
+    #         ],
+    #         "from": {"email": "hamzasayad16@gmail.com"},
+    #         "subject": "Your Streamlit Notification",
+    #         "content": [
+    #             {
+    #                 "type": "text/plain",
+    #                 "value": "Your notification content here (e.g., list of people without masks)"
+    #             }
+    #         ]
+    #     }
+    #
+    #     response = requests.post(url, headers=headers, json=data)
+    #
+    #     if response.status_code == 202:
+    #         st.success("Notification sent successfully!")
+    #     else:
+    #         st.error(f"Error sending notification: {response.text}")
+
+
+
+    def send_email(self, subject, body, recipient_email = "kooolmnjksiiolm@gmail.com" ):
+        # Replace with your SMTP server details
+        smtp_server = "smtp.gmail.com"
+        port = 465  # Use 465 for SSL 587 hsdhsdensas hamzasayad16@gmail.com rgvj cgwh rqoy iyix
+        sender_email = "luvthakur262001@gmail.com"
+        sender_password = "blwq zpnq mbda zwac"
+
+        # context = ssl.create_default_context()
+        # context.check_hostname = False  # Might be needed for some servers (caution: security risk)
+        # context.set_ciphers('DEFAULT@SECLEVEL=1')  # Example cipher suite selection
+        #
+        # with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+
+        # Create a secure connection with the SMTP server
+        with smtplib.SMTP_SSL(smtp_server, port) as server:
+            server.login(sender_email, sender_password)
+
+            # Create a MIMEMultipart message
+            message = MIMEMultipart()
+            message["From"] = sender_email
+            message["To"] = recipient_email
+            message["Subject"] = subject
+
+            # Attach the email body as plain text
+            message.attach(MIMEText(body, "plain"))
+
+            try:
+                # Send the email
+                server.sendmail(sender_email, recipient_email, message.as_string())
+                st.success("Email sent successfully!")
+            except Exception as e:
+                st.error(f"Error sending email: {e}")
+
+
+    # def send_mail(self , subject, body, recipient_email = "kooolmnjksiiolm@gmail.com"):
+    #     # Streamlit UI elements to collect recipient email, subject, and body
+    #     # recipient_email = "kooolmnjksiiolm@gmail.com"
+    #     # subject = "Your Streamlit Notification"
+    #     # body = "Your notification content here (e.g., list of people without masks)"
+    #
+    #     # if st.button("Send Email"):
+    #     try:
+    #         self.send_email(recipient_email, subject, body)
+    #         st.success("Email sent successfully!")
+    #     except Exception as e:
+    #         st.error(f"Error sending email: {e}")
 
     def login(self, app, email, password):
 
