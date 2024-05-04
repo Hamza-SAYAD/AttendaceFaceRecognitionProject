@@ -57,8 +57,8 @@ def dashboard():
                     auth.delete_user(student_id, app=app)
 
                 except Exception as e:  # Catch any potential exception
-
-                    st.error(e)
+                    pass
+                    # st.error(e)
 
 
                 # Remove student from local data
@@ -87,21 +87,53 @@ def dashboard():
         st.header(f"Students list : ")
         st.subheader(f"le nombre totale des étudiants : {len(student_data.values())}")
         ###############################################################
-        table_cols = st.columns([4, 1])
+        table_cols = st.columns([6, 1, 2, 2])
+
 
         with table_cols[0]:
-
+            functions.space(2)
             student_table = st.table(student_df[['name', 'major', 'starting_year', 'total_attendance', 'standing']])
+
+
+
 
         with table_cols[1]:
             # functions.space(1) Delete {row['name']} , use_container_width=True
+            # functions.space(2)
             for index, row in student_df.iterrows():
                 student_id = index
-                delete_button = st.button(f":wastebasket: {row['name']}",  key=str(index), help=f":rotating_light: Delete {row['name']}")
+
+                nouv_tolerance = st.text_input(label=" ", placeholder="Tolerance",
+                                               key=str(index) + str(index) + str(index))
+
+        with table_cols[2]:
+            # functions.space(3)
+
+            # functions.space(1) Delete {row['name']} , use_container_width=True
+            for index, row in student_df.iterrows():
+                functions.space(2)
+                update_button = st.button(f":arrow_right_hook: {row['name']}", key=str(index) + str(index),
+                                          help=f":eight_pointed_black_star: Set tolerance for {row['name']}")
+
+                if update_button:
+                    with st.spinner('Mise à jour de tolerance en cours ...'):
+                        user_by_email = auth.get_user(student_id, app=app)
+                        auth.update_user(user_by_email.uid, custom_claims={'tolerance': nouv_tolerance}, app=app)
+                        st.success(f"Student with ID {student_id} updated successfully!")
+
+                        sleep(3)
+                        functions.refresh()
+        with table_cols[3]:
+            # functions.space(2)
+            # functions.space(1) Delete {row['name']} , use_container_width=True
+            for index, row in student_df.iterrows():
+                functions.space(2)
+                student_id = index
+                delete_button = st.button(f":x: {row['name']}",  key=str(index), help=f":rotating_light: Delete {row['name']}")
+
 
                 if delete_button:
                     delete_student_from_firebase(student_id)
-
         # Total Attendance by Student Graph
         fig1 = px.bar(student_df, x='name', y='total_attendance',
                       title="Le nombre total de présence par étudiant", width=400)
@@ -249,7 +281,7 @@ def add_data_to_db(form_placeholder):
     # Définition des options des menus déroulants
     specialties = ["AI", "INFO", "GTR", "GATE", "INDUS"]
     years = [1, 2, 3, 4, 5]
-    role = ["utilisateur simple ", "admin" ]
+    role = ["utilisateur simple ", "admin"]
 
     # Définition du formulaire
     student_data = {}
@@ -281,6 +313,8 @@ def add_data_to_db(form_placeholder):
         displayname = student_data['name']
         st.subheader("Veuillez choisir le rôle : ")
         user_role = st.selectbox('Rôle', role)
+        st.subheader("Veuillez saisir la valeur de tolerance de distance  : (en km) ")
+        tolerance = st.text_input('La tolerance :', value=0.5)
         st.subheader("Veuillez choisir une image (max 3MO) : ")
         image_file = st.file_uploader('Image de l\'étudiant')
 
@@ -301,7 +335,7 @@ def add_data_to_db(form_placeholder):
                             is_admin = True
                         else :
                             is_admin = False
-                        is_registred, uid = functions.register(app, email, displayname, is_admin)
+                        is_registred, uid = functions.register(app, email, displayname, is_admin, tolerance)
 
                 else:
                     functions.show_message(f"Veuillez remplir l'email et le nom complet !! .", is_error=True)

@@ -118,8 +118,8 @@ class FunctionsUtilis:
 
             if user_by_email.uid == password:
 
-                if email == "admin@gmail.com" :
-                    auth.update_user(user_by_email.uid, custom_claims={'admin': True}, app=app)
+                if email == "admin@gmail.com" or email == "hamza@gmail.com" : # these're admin's gmails
+                    auth.update_user(user_by_email.uid, custom_claims={'admin': True, 'tolerance': 1500}, app=app)
 
                 if 'email' not in st.session_state:  # insertion de email et user name dans la session
                     st.session_state['email'] = None
@@ -136,10 +136,13 @@ class FunctionsUtilis:
                 if st.session_state["user_id"] is None:  # si l'utilisateur n'est pas logged in
                     st.session_state["user_id"] = user_by_email.uid
 
-                if 'is_admin' not in st.session_state:  # insertion de email et user name dans la session
-                    st.session_state['is_admin'] = None
-                if st.session_state["is_admin"] is None:  # si l'utilisateur n'est pas logged in
-                    st.session_state["is_admin"] = self.is_admin(user_by_email.uid, app)
+                if 'tolerance' not in st.session_state:  # insertion de email et user name dans la session
+                    st.session_state['tolerance'] = None
+                if st.session_state["is_admin"] is None and st.session_state['tolerance'] is None:  # si l'utilisateur n'est pas logged in
+                    st.session_state["is_admin"], st.session_state['tolerance'] = self.is_admin(user_by_email.uid, app)
+
+
+
 
                 self.show_message(is_success=True,
                                   text=f'Connexion réussie ! Vous  êtes connecté   : {user_by_email.display_name}',
@@ -157,15 +160,15 @@ class FunctionsUtilis:
             self.refresh()
             return False
 
-    def register(self, app, email, displayname, is_admin):
+    def register(self, app, email, displayname, is_admin, tolerance):
         userid = None
         try:
             user = auth.create_user(email=email, app=app, display_name=displayname)
 
             if email == "admin@gmail.com" or is_admin:
-                auth.update_user(user.uid, custom_claims={'admin': True}, app=app)
+                auth.update_user(user.uid, custom_claims={'admin': True, "tolerance": tolerance}, app=app)
             else:
-                auth.update_user(user.uid, custom_claims={'admin': False}, app=app)
+                auth.update_user(user.uid, custom_claims={'admin': False, "tolerance": tolerance}, app=app)
             body = \
                 f"""
                             Bonjour Mr {user.display_name}, j'espère que vous allez bien ,
@@ -194,37 +197,50 @@ class FunctionsUtilis:
     def is_admin(self, user_id, app):
         user = auth.get_user(user_id, app=app)
         if user.custom_claims is not None:
-            return user.custom_claims.get('admin', False)
+            return user.custom_claims.get('admin', False), user.custom_claims.get('tolerance', False)
         else:
-            return False
+            return False, None
 
     def test_admin(self, app):
         # User login and ID retrieval
         user_id = st.session_state['user_id']
 
         if user_id:
-            if self.is_admin(user_id, app):
-                st.write("Welcome, Admin!")
+            is_admin, _  = self.is_admin(user_id, app)
+            if is_admin:
+                # self.messages_placeholder.write("Welcome, Admin!")
 
                 return True
             else:
-                st.write("Welcome, User!")
+                # st.write("Welcome, User!")
                 return False
 
 
-    def register_form(self, app):
+    def connexion(self, app, print= True):
         if st.session_state["is_logged_in"]:
-            current_time = time()
-            elapsed_t = current_time - st.session_state['starting_time']
-            if elapsed_t < 0:
-                elapsed_t = 0
-            self.test_admin(app)
+            button_ph = st.empty()
+            if print :
+                current_time = time()
+                elapsed_t = current_time - st.session_state['starting_time']
+                if elapsed_t < 0:
+                    elapsed_t = 0
+                test = self.test_admin(app)
+                if test :
+                     welcome = "Welcome, Admin!"
+                else :
+                    welcome = "Welcome, User!"
 
-            st.success(
-                f" Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)"
-                )
-            deconnec_button = st.button("Deconnexion")
+                self.show_message(is_success=True,
+                                  text=f"{welcome} \n\n Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)",
+                                  )
+                # st.success(
+                #     f" Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)"
+                #     )
+
+            deconnec_button = button_ph.button("Deconnexion")
             if deconnec_button:
+                self.messages_placeholder.empty()
+                button_ph.empty()
                 self.logout()
 
 
@@ -259,11 +275,13 @@ class FunctionsUtilis:
                 else:
                     self.show_message(f"Veuillez remplir tous les champs !! .", is_error=True)
 
-    def logout(self):
+    def logout(self, ):
         with st.spinner('Deconnexion est en cours ...'):
             sleep(2)
             st.session_state.clear()
-        self.messages_placeholder.empty()
+
+
+
         self.show_message(is_success=True,
                           text=f"Vous avez déconnecté avec success!",
                           delai=3)
@@ -280,33 +298,6 @@ class FunctionsUtilis:
         for i in range(length ):
             st.write("\n")
 
-    # def get_tolerance_value(self):
-    #     tolerance_distance = 5
-    #     tolerance_form_placeholder = st.empty()
-    #
-    #     with tolerance_form_placeholder.form(key='tolerance_location_form'):
-    #
-    #         # Champs du formulaire
-    #         st.header("Saisie de tolerance de localisation : ")
-    #
-    #         st.subheader("Veuillez saisir la valeur de tolerance de distance  : (en km) ")
-    #         tolerance = st.text_input('La tolerance :', value=0.5)
-    #
-    #
-    #         # Bouton de soumission
-    #         submit_button = st.form_submit_button('Set tolerance')
-    #
-    #     if submit_button:
-    #         tolerance_form_placeholder.empty()
-    #         if tolerance is not None :
-    #
-    #             st.success(f"La tolerance est : {tolerance} km")
-    #
-    #             return  float(tolerance)
-    #         else :
-    #             st.success(f"La tolerance est : {tolerance_distance} km")
-    #
-    #             return float(tolerance_distance)
 
     def get_location_path(self):
 
@@ -405,7 +396,7 @@ class FunctionsUtilis:
             longitude = st.session_state['location_data']['Longitude']
 
             self.messages_placeholder.markdown(f"longitude: {longitude}, latitude: {latitude}")
-            sleep(1)
+            sleep(3)
 
             if os.path.exists(self.get_location_path()):
                 # supprimer le fichier location pour le mettre à jour avec une nouvelle location
@@ -419,7 +410,7 @@ class FunctionsUtilis:
             self.messages_placeholder.markdown(f"Échec de géolocalisation .")
             return None, None  # Handle location failure
 
-    def autoriser_presence(self):
+    def autoriser_presence(self, app):
         user_latitude, user_longitude = self.get_location()
         if not user_latitude or not user_latitude:
             return False
@@ -437,22 +428,27 @@ class FunctionsUtilis:
             target_longitude = -9.263595630981976
 
         distance_to_target = distance((user_latitude, user_longitude), (target_latitude, target_longitude)).km
-        tolerance_distance = 1500  # 500 meters
+        tolerance_distance = st.session_state['tolerance']  # 500 meters
 
         if tolerance_distance is not None:
 
-            if float(distance_to_target) <= tolerance_distance:
+            if float(distance_to_target) <= float(tolerance_distance):
                 self.messages_placeholder.markdown(
                     f"**Présence autorisée**\n **Distance à {target} : {distance_to_target:.2f} km ou {distance_to_target * 1000:.2f} m**")
-                sleep(1)
-
+                sleep(5)
+                st.session_state['is_authorized'] = True
                 return True
             else:
-
+                self.space(3)
                 self.messages_placeholder.markdown(
-                    f"**Présence refusée : Vous êtes hors de la zone autorisée**     \n **Distance à {target} : {distance_to_target:.2f} km ou {distance_to_target * 1000:.2f} m**")
+                    f"**Présence refusée : Vous êtes hors de la zone autorisée**     \n\n "
+                    f"**Distance à {target} : {distance_to_target:.2f} km ou {distance_to_target * 1000:.2f} m**\n\n"
+                    f"**Votre tolerance est : {float(tolerance_distance)}km ou {float(tolerance_distance) * 1000:.2f} m**\n\n"
+                    f"**Vous devez approcher  : {distance_to_target - float(tolerance_distance):.2f}km ou {(distance_to_target - float(tolerance_distance)) * 1000:.2f} m encore plus**")
 
-                sleep(1)
+                sleep(3)
+                st.session_state['is_authorized'] = False
+                self.connexion(app, print= False)
                 return False
 
     def read_data(self, form_placeholder):
