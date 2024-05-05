@@ -232,7 +232,7 @@ class FunctionsUtilis:
 
                 self.show_message(is_success=True,
                                   text=f"{welcome} \n\n Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)",
-                                  )
+                                  delai=0)
                 # st.success(
                 #     f" Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)"
                 #     )
@@ -563,11 +563,27 @@ class FunctionsUtilis:
         random_string = ''.join(random.choice(characters) for _ in range(length))
         return random_string
 
+    def get_downloads_path(self):
+
+        # Obtenir le chemin d'accueil de l'utilisateur
+        home_dir = os.path.expanduser('~')
+
+        # Construire le chemin complet du dossier Téléchargements
+        downloads_dir = os.path.join(home_dir, "Downloads\\")
+
+        return str(downloads_dir)
     def markAttendance(self, id, name, starting_year, year, standing, major, total_attendance, last_attendance_time,
                        total_mask_detected, last_mask_time, messages_placeholder):
         date = datetime.today().strftime('%Y-%m-%d')
-        file = 'Excel files/Attendance_' + str(date) + '.csv'
+        # file = 'Excel files/Attendance_' + str(date) + '.csv'
 
+        file = self.get_downloads_path() + 'Attendance excel files\\'+str(major)+'\\Attendance_'+str(major) +'_'+ str(date) + '.csv'
+        excel_dir = self.get_downloads_path() + 'Attendance excel files'
+        major_dir = self.get_downloads_path() + 'Attendance excel files\\'+str(major)
+        if not os.path.exists(excel_dir):
+            os.makedirs(excel_dir)
+        if not os.path.exists(major_dir):
+            os.makedirs(major_dir)
         if not os.path.exists(file):
             with open(file, 'w') as f:
                 f.write(
