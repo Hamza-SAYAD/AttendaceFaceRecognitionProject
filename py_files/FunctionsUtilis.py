@@ -30,56 +30,12 @@ class FunctionsUtilis:
         self.messages_placeholder = messages_placeholder
         self.geolocator = Nominatim(user_agent="attendance_mask_app")
 
-
-    # def send_email(self):
-    #     import streamlit as st
-    #     import requests  # Assuming you're using requests for the API call
-    #
-    #     # # Streamlit form to collect email address (with consent checkbox)
-    #     # email = st.text_input("Enter your email address:")
-    #     # consent_checkbox = st.checkbox("I consent to receiving notifications")
-    #     #
-    #     # send_button = st.button("Send Notification")
-    #     # SG.PctTex3-5N68f7UtvK1cBg .Eo2Mtarx1C0oHy3bYGI0AqJFzLB-gop0oD3417kb6so
-    #     # if send_button and consent_checkbox: ngeVfQFYQlKU0ufo8x5d1A
-    #     # Replace with your SendGrid API endpoint and details PctTex3-5N68f7UtvK1cBg
-    #     url = "https://api.sendgrid.com/v3/mail/send"
-    #     headers = {
-    #         "Authorization": "ngeVfQFYQlKU0ufo8x5d1A",
-    #         "Content-Type": "application/json"
-    #     }
-    #     data = {
-    #         "personalizations": [
-    #             {
-    #                 "to": [{"email": "hamzasayad1736@gmail.com"}]
-    #             }
-    #         ],
-    #         "from": {"email": "hamzasayad16@gmail.com"},
-    #         "subject": "Your Streamlit Notification",
-    #         "content": [
-    #             {
-    #                 "type": "text/plain",
-    #                 "value": "Your notification content here (e.g., list of people without masks)"
-    #             }
-    #         ]
-    #     }
-    #
-    #     response = requests.post(url, headers=headers, json=data)
-    #
-    #     if response.status_code == 202:
-    #         st.success("Notification sent successfully!")
-    #     else:
-    #         st.error(f"Error sending notification: {response.text}")
-
-
-
-    def send_email(self, subject, body, recipient_email = "kooolmnjksiiolm@gmail.com" ):
+    def send_email(self, subject, body, user_id, app, recipient_email="kooolmnjksiiolm@gmail.com", ):
         # Replace with your SMTP server details
         smtp_server = "smtp.gmail.com"
         port = 465  # Use 465 for SSL 587 hsdhsdensas hamzasayad16@gmail.com rgvj cgwh rqoy iyix
-        sender_email = "luvthakur262001@gmail.com"
-        sender_password = "blwq zpnq mbda zwac"
 
+        sender_email, sender_password = self.get_sender_apppass(user_id, app)
         # Create a secure connection with the SMTP server
         with smtplib.SMTP_SSL(smtp_server, port) as server:
             server.login(sender_email, sender_password)
@@ -105,21 +61,18 @@ class FunctionsUtilis:
                                   text=f"Error sending email: {e}",
                                   delai=3)
 
-
-
-
-
     def login(self, app, email, password):
 
         try:
 
             user_by_email = auth.get_user_by_email(email, app=app)
 
-
             if user_by_email.uid == password:
 
-                if email == "admin@gmail.com" or email == "hamza@gmail.com" : # these're admin's gmails
-                    auth.update_user(user_by_email.uid, custom_claims={'admin': True, 'tolerance': 1500}, app=app)
+                if email == "admin@gmail.com" or email == "hamza@gmail.com":  # these're admin's gmails
+                    auth.update_user(user_by_email.uid, custom_claims={'admin': True, 'tolerance': 1500,
+                                                                       "sender_email": "luvthakur262001@gmail.com",
+                                                                       "app_passwords": "blwq zpnq mbda zwac"}, app=app)
 
                 if 'email' not in st.session_state:  # insertion de email et user name dans la session
                     st.session_state['email'] = None
@@ -138,11 +91,9 @@ class FunctionsUtilis:
 
                 if 'tolerance' not in st.session_state:  # insertion de email et user name dans la session
                     st.session_state['tolerance'] = None
-                if st.session_state["is_admin"] is None and st.session_state['tolerance'] is None:  # si l'utilisateur n'est pas logged in
+                if st.session_state["is_admin"] is None and st.session_state[
+                    'tolerance'] is None:  # si l'utilisateur n'est pas logged in
                     st.session_state["is_admin"], st.session_state['tolerance'] = self.is_admin(user_by_email.uid, app)
-
-
-
 
                 self.show_message(is_success=True,
                                   text=f'Connexion réussie ! Vous  êtes connecté   : {user_by_email.display_name}',
@@ -160,15 +111,19 @@ class FunctionsUtilis:
             self.refresh()
             return False
 
-    def register(self, app, email, displayname, is_admin, tolerance):
+    def register(self, app, email, displayname, is_admin, tolerance, sender_email, app_passwords):
         userid = None
         try:
             user = auth.create_user(email=email, app=app, display_name=displayname)
 
             if email == "admin@gmail.com" or is_admin:
-                auth.update_user(user.uid, custom_claims={'admin': True, "tolerance": tolerance}, app=app)
+                auth.update_user(user.uid,
+                                 custom_claims={'admin': True, "tolerance": tolerance, "sender_email": sender_email,
+                                                "app_passwords": app_passwords}, app=app)
             else:
-                auth.update_user(user.uid, custom_claims={'admin': False, "tolerance": tolerance}, app=app)
+                auth.update_user(user.uid,
+                                 custom_claims={'admin': False, "tolerance": tolerance, "sender_email": sender_email,
+                                                "app_passwords": app_passwords}, app=app)
             body = \
                 f"""
                             Bonjour Mr {user.display_name}, j'espère que vous allez bien ,
@@ -178,20 +133,29 @@ class FunctionsUtilis:
                     et merci ,
                          cordialement
                     """
-
-            self.send_email(body=body, subject="Etat de creation de votre compte scolaire ")
+            userid = user.uid
+            self.send_email(body=body, subject="Etat de creation de votre compte scolaire ", user_id=user.uid, app=app,
+                            recipient_email=email)
             self.show_message(is_success=True,
                               text=f"Utilisateur créé avec succès, votre mot de passe est: {user.uid} (vous devez l'utiliser pour s'authentifier)",
                               delai=5)
 
-            userid = user.uid
             return True, userid
         except Exception as error:
 
             st.error(f"Échec d'\inscription: {error}")
-            if userid is not None:
-                auth.delete_user(userid)
-            # self.refresh()
+
+            #             supprimer le user en cas de problème avec le mail
+            try:
+
+                # delete user from authentification service
+                if userid is not None:
+                    auth.delete_user(userid, app=app)
+
+            except Exception as e:  # Catch any potential exception
+
+                st.error(e)
+
             return False, None
 
     def is_admin(self, user_id, app):
@@ -201,48 +165,49 @@ class FunctionsUtilis:
         else:
             return False, None
 
+    def get_sender_apppass(self, user_id, app):
+        user = auth.get_user(user_id, app=app)
+        if user.custom_claims is not None:
+            return user.custom_claims.get('sender_email', False), user.custom_claims.get('app_passwords', False)
+        else:
+            return None, None
+
     def test_admin(self, app):
         # User login and ID retrieval
         user_id = st.session_state['user_id']
 
         if user_id:
-            is_admin, _  = self.is_admin(user_id, app)
+            is_admin, _ = self.is_admin(user_id, app)
             if is_admin:
-                # self.messages_placeholder.write("Welcome, Admin!")
 
                 return True
             else:
-                # st.write("Welcome, User!")
+
                 return False
 
-
-    def connexion(self, app, print= True):
+    def connexion(self, app, print=True):
         if st.session_state["is_logged_in"]:
             button_ph = st.empty()
-            if print :
+            if print:
                 current_time = time()
                 elapsed_t = current_time - st.session_state['starting_time']
                 if elapsed_t < 0:
                     elapsed_t = 0
                 test = self.test_admin(app)
-                if test :
-                     welcome = "Welcome, Admin!"
-                else :
+                if test:
+                    welcome = "Welcome, Admin!"
+                else:
                     welcome = "Welcome, User!"
 
                 self.show_message(is_success=True,
                                   text=f"{welcome} \n\n Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)",
                                   delai=0)
-                # st.success(
-                #     f" Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)"
-                #     )
 
             deconnec_button = button_ph.button("Deconnexion")
             if deconnec_button:
                 self.messages_placeholder.empty()
                 button_ph.empty()
                 self.logout()
-
 
     def login_form(self, app):
         if st.session_state["is_logged_in"]:
@@ -280,12 +245,9 @@ class FunctionsUtilis:
             sleep(2)
             st.session_state.clear()
 
-
-
         self.show_message(is_success=True,
                           text=f"Vous avez déconnecté avec success!",
                           delai=3)
-
 
         self.refresh()
 
@@ -295,9 +257,8 @@ class FunctionsUtilis:
         sys.exit(0)
 
     def space(self, length):
-        for i in range(length ):
+        for i in range(length):
             st.write("\n")
-
 
     def get_location_path(self):
 
@@ -315,47 +276,7 @@ class FunctionsUtilis:
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
                         
                     <script type="text/javascript">
-                    /*// config de la base de données,ceci ne peut aura lieu qu'après l'intégration de login et authentification, afin d'enregistrer les cordonnées de localisation chez l'utilisateur connecté
-                    // Import the functions you need from the SDKs you need
-                        import { initializeApp } from "firebase/app";
-                        import { getDatabase, ref, set, get, child } from "firebase/app";
-                        //import { getAnalytics } from "firebase/analytics";
-                        // TODO: Add SDKs for Firebase products that you want to use
-                        // https://firebase.google.com/docs/web/setup#available-libraries
-                        
-                        // Your web app's Firebase configuration
-                        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-                        const firebaseConfig = {
-                          apiKey: "AIzaSyDmnt05H_hnLTuTmIjD1cfOJnav4oeHaU8",
-                          authDomain: "realtimeensasattendancesystem.firebaseapp.com",
-                          databaseURL: "https://realtimeensasattendancesystem-default-rtdb.firebaseio.com",
-                          projectId: "realtimeensasattendancesystem",
-                          storageBucket: "realtimeensasattendancesystem.appspot.com",
-                          messagingSenderId: "52022986400",
-                          appId: "1:52022986400:web:529bfb74111df4771fabc5",
-                          measurementId: "G-L27T5JC965"
-                        };
-                        
-                        // Initialize Firebase
-                        const app = initializeApp(firebaseConfig);
-                        //const analytics = getAnalytics(app);
-                        const database = firebase.database();
-                        const reference = database.ref('locations');
-                        
-                        reference.set({
-                          latitude: latitude,
-                          longitude: longitude
-                        })
-                        .then(() => {
-                          console.log("Coordonnées stockées avec succès dans Firebase");
-                        })
-                        .catch(error => {
-                          console.error("Échec du stockage des coordonnées dans Firebase:", error);
-                        });
-
-
-                        */
-                        
+                    
                         
                      if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(function(position) {
@@ -388,7 +309,6 @@ class FunctionsUtilis:
             if st.session_state['location_data'] is None:
                 with open(self.get_location_path(), "r") as f:
                     location_data = json.load(f)
-
 
                 st.session_state['location_data'] = location_data
 
@@ -446,9 +366,9 @@ class FunctionsUtilis:
                     f"**Votre tolerance est : {float(tolerance_distance)}km ou {float(tolerance_distance) * 1000:.2f} m**\n\n"
                     f"**Vous devez approcher  : {distance_to_target - float(tolerance_distance):.2f}km ou {(distance_to_target - float(tolerance_distance)) * 1000:.2f} m encore plus**")
 
-                sleep(3)
+                # sleep(3)
                 st.session_state['is_authorized'] = False
-                self.connexion(app, print= False)
+                self.connexion(app, print=False)
                 return False
 
     def read_data(self, form_placeholder):
@@ -469,12 +389,20 @@ class FunctionsUtilis:
 
             st.subheader("Saisissez le seuil de niveau de présence (standing) :")
             standing_tresh = int(st.number_input("standing_tresh", key="standing_tresh"))
+            if st.session_state["is_admin"]:
+                st.subheader(
+                    "Veuillez saisir un email valide du destinataire des cas qui ne portent pas de masque   : ")
+                recipient_email = st.text_input("Votre email  : ", value="kooolmnjksiiolm@gmail.com")
+            else:
+
+                st.subheader("L' email  du destinataire  des cas qui ne portent pas de masque   : ")
+                recipient_email = st.text_input("Votre email  : ", value="kooolmnjksiiolm@gmail.com", disabled=True)
 
             if st.form_submit_button("Set parameters & Start"):
 
                 if not max_time_mask and not max_time_remark and not standing_tresh:
                     st.error(f"Warning : Aucun paramètre n'a été modifié.")
-                    return max_time_mask_def, max_time_remark_def, standing_tresh_def
+                    return max_time_mask_def, max_time_remark_def, standing_tresh_def, recipient_email
 
                 if max_time_mask:
                     # Convert time based on unit chosen
@@ -503,9 +431,9 @@ class FunctionsUtilis:
                 else:
                     standing_tresh = standing_tresh_def
 
-                return max_time_mask, max_time_remark, standing_tresh
+                return max_time_mask, max_time_remark, standing_tresh, recipient_email
 
-    def adding_info(self, imgBackground, total_attendance, major, email, total_mask_detected, year, standing,
+    def adding_info(self, imgBackground, total_attendance, major, id, total_mask_detected, year, standing,
                     name, starting_year):
         cv2.putText(imgBackground, str(total_attendance), (861, 125),
                     cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
@@ -513,8 +441,8 @@ class FunctionsUtilis:
                     cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
         cv2.putText(imgBackground, str(major), (1026, 530),
                     cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
-        cv2.putText(imgBackground, str(email), (948, 480),
-                    cv2.FONT_HERSHEY_COMPLEX, 0.4, (255, 255, 255), 1)
+        cv2.putText(imgBackground, str(id), (948, 480),
+                    cv2.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255), 1)
         cv2.putText(imgBackground, str(total_mask_detected), (945, 635),
                     cv2.FONT_HERSHEY_COMPLEX, 0.6, (100, 100, 100), 1)
         cv2.putText(imgBackground, str(year), (1045, 635),
@@ -572,14 +500,15 @@ class FunctionsUtilis:
         downloads_dir = os.path.join(home_dir, "Downloads\\")
 
         return str(downloads_dir)
+
     def markAttendance(self, id, name, starting_year, year, standing, major, total_attendance, last_attendance_time,
                        total_mask_detected, last_mask_time, messages_placeholder):
         date = datetime.today().strftime('%Y-%m-%d')
-        # file = 'Excel files/Attendance_' + str(date) + '.csv'
 
-        file = self.get_downloads_path() + 'Attendance excel files\\'+str(major)+'\\Attendance_'+str(major) +'_'+ str(date) + '.csv'
+        file = self.get_downloads_path() + 'Attendance excel files\\' + str(major) + '\\Attendance_' + str(
+            major) + '_' + str(date) + '.csv'
         excel_dir = self.get_downloads_path() + 'Attendance excel files'
-        major_dir = self.get_downloads_path() + 'Attendance excel files\\'+str(major)
+        major_dir = self.get_downloads_path() + 'Attendance excel files\\' + str(major)
         if not os.path.exists(excel_dir):
             os.makedirs(excel_dir)
         if not os.path.exists(major_dir):

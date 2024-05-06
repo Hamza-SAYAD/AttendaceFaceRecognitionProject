@@ -58,8 +58,6 @@ def dashboard():
 
                 except Exception as e:  # Catch any potential exception
                     pass
-                    # st.error(e)
-
 
                 # Remove student from local data
 
@@ -89,17 +87,12 @@ def dashboard():
         ###############################################################
         table_cols = st.columns([6, 1, 2, 2])
 
-
         with table_cols[0]:
             functions.space(2)
             student_table = st.table(student_df[['name', 'major', 'starting_year', 'total_attendance', 'standing']])
 
-
-
-
         with table_cols[1]:
-            # functions.space(1) Delete {row['name']} , use_container_width=True
-            # functions.space(2)
+
             for index, row in student_df.iterrows():
                 student_id = index
 
@@ -107,9 +100,7 @@ def dashboard():
                                                key=str(index) + str(index) + str(index))
 
         with table_cols[2]:
-            # functions.space(3)
 
-            # functions.space(1) Delete {row['name']} , use_container_width=True
             for index, row in student_df.iterrows():
                 functions.space(2)
                 update_button = st.button(f":arrow_right_hook: {row['name']}", key=str(index) + str(index),
@@ -124,13 +115,12 @@ def dashboard():
                         sleep(3)
                         functions.refresh()
         with table_cols[3]:
-            # functions.space(2)
-            # functions.space(1) Delete {row['name']} , use_container_width=True
+
             for index, row in student_df.iterrows():
                 functions.space(2)
                 student_id = index
-                delete_button = st.button(f":x: {row['name']}",  key=str(index), help=f":rotating_light: Delete {row['name']}")
-
+                delete_button = st.button(f":x: {row['name']}", key=str(index),
+                                          help=f":rotating_light: Delete {row['name']}")
 
                 if delete_button:
                     delete_student_from_firebase(student_id)
@@ -308,8 +298,12 @@ def add_data_to_db(form_placeholder):
         student_data['last_attendance_time'] = "2024-04-11 00:54:34"
         student_data['total_mask_detected'] = 0
         student_data['last_mask_time'] = "2024-04-11 00:54:34"
+        st.subheader("Veuillez saisir un email valide et configuré : ")
+        sender_email = st.text_input("Votre email  : (de l'emetteur)", value="luvthakur262001@gmail.com")
+        st.subheader("Veuillez saisir mot de passe de l'app de la MFA2 (app password): ")
+        app_passwords = st.text_input("Votre email  : (de l'emetteur)", value="blwq zpnq mbda zwac", type="password")
         st.subheader("Veuillez saisir un email valide: ")
-        email = st.text_input('Votre email  :')
+        email = st.text_input("Votre email  : (de l'etudiant)")
         displayname = student_data['name']
         st.subheader("Veuillez choisir le rôle : ")
         user_role = st.selectbox('Rôle', role)
@@ -326,64 +320,64 @@ def add_data_to_db(form_placeholder):
         # Vérification si l'image a été téléchargée
         if image_file is not None:
 
+            # creation de l'utilisateur
+            if email is not None and displayname is not None:
+                with st.spinner("Inscription de l'utilisateur est en cours ..."):
+                    sleep(1)
+                    if user_role == "admin":
+                        is_admin = True
+                    else:
+                        is_admin = False
+                    is_registred, uid = functions.register(app, email, displayname, is_admin, tolerance, sender_email,
+                                                           app_passwords)
 
-                # creation de l'utilisateur
-                if email is not None and displayname is not None:
-                    with st.spinner("Inscription de l'utilisateur est en cours ..."):
-                        sleep(1)
-                        if user_role == "admin":
-                            is_admin = True
-                        else :
-                            is_admin = False
-                        is_registred, uid = functions.register(app, email, displayname, is_admin, tolerance)
+            else:
+                functions.show_message(f"Veuillez remplir l'email et le nom complet !! .", is_error=True)
 
-                else:
-                    functions.show_message(f"Veuillez remplir l'email et le nom complet !! .", is_error=True)
+            if uid is not None:
+                with st.spinner('Adding data to database ...'):
 
-                if uid is not None:
-                    with st.spinner('Adding data to database ...'):
+                    student_data["id"] = uid
 
-                        student_data["id"] = uid
+                    # Enregistrement de l'image dans localement
+                    image_path = f'{folderPath}/{student_data["id"]}.png'
 
-                        # Enregistrement de l'image dans localement
-                        image_path = f'{folderPath}/{student_data["id"]}.png'
+                    image_data = image_file.read()
+                    image_stream = BytesIO(image_data)  # Create an in-memory stream from image data
+                    image = Image.open(image_stream)  # Open the image from the stream
+                    resized_image = image.resize((216, 216), Image.ANTIALIAS)
 
-                        image_data = image_file.read()
-                        image_stream = BytesIO(image_data)  # Create an in-memory stream from image data
-                        image = Image.open(image_stream)  # Open the image from the stream
-                        resized_image = image.resize((216, 216), Image.ANTIALIAS)
+                    # enregistrement local de l'image
+                    with open(image_path, 'wb') as f:
+                        resized_image.save(f, 'PNG')  # Save as JPEG
 
-                        # enregistrement local de l'image
-                        with open(image_path, 'wb') as f:
-                            resized_image.save(f, 'PNG')  # Save as JPEG
+                    with st.spinner('Obtention de l\'encodage des images ...'):
+                        sleep(3)
+                        # obtention de l'encodage des images
+                        encoding_state = encode.get_store_encodings()
+                        if encoding_state:
 
-                        with st.spinner('Obtention de l\'encodage des images ...'):
+                            # Ajout des données à Firebase
+                            add_student_data(student_data)
+
+                            # Ajout de l'image dans firebase
+                            blob = bucket.blob(image_path)  # converting the image to the proper format for storing
+                            blob.upload_from_filename(image_path)  # send images to the storage bucket
+
+                            # Affichage d'un message de confirmation
+                            st.success('L\'Étudiant est ajouté avec succès!')
                             sleep(3)
-                            # obtention de l'encodage des images
-                            encoding_state = encode.get_store_encodings()
-                            if encoding_state:
+                        else:  # suppression locale de l'image non valide
+                            # Remove student from local data
 
-                                # Ajout des données à Firebase
-                                add_student_data(student_data)
+                            if os.path.exists(image_path):
+                                # supprimer l'étudiant en question
+                                os.remove(image_path)
+                            st.error("Problème d\'encodage : Veuillez choisir une autre image de l\'étudiant.")
 
-                                # Ajout de l'image dans firebase
-                                blob = bucket.blob(image_path)  # converting the image to the proper format for storing
-                                blob.upload_from_filename(image_path)  # send images to the storage bucket
-
-                                # Affichage d'un message de confirmation
-                                st.success('L\'Étudiant est ajouté avec succès!')
-                                sleep(3)
-                            else:  # suppression locale de l'image non valide
-                                # Remove student from local data
-
-                                if os.path.exists(image_path):
-                                    # supprimer l'étudiant en question
-                                    os.remove(image_path)
-                                st.error("Problème d\'encodage : Veuillez choisir une autre image de l\'étudiant.")
-
-                else:
-                    functions.show_message(f"Un problème imprévue lors de création d'utilisateur ", is_error=True,
-                                           delai=5)
+            else:
+                functions.show_message(f"Un problème imprévue lors de création d'utilisateur ", is_error=True,
+                                       delai=5)
         else:
             # Affichage d'un message d'erreur si l'image n'a pas été téléchargée
             st.error('Veuillez télécharger une image de l\'étudiant.')
