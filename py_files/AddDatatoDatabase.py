@@ -112,7 +112,7 @@ def dashboard():
                         auth.update_user(user_by_email.uid, custom_claims={'tolerance': nouv_tolerance}, app=app)
                         st.success(f"Student with ID {student_id} updated successfully!")
 
-                        sleep(3)
+                        sleep(2)
                         functions.refresh()
         with table_cols[3]:
 
@@ -301,7 +301,7 @@ def add_data_to_db(form_placeholder):
         st.subheader("Veuillez saisir un email valide et configuré : ")
         sender_email = st.text_input("Votre email  : (de l'emetteur)", value="luvthakur262001@gmail.com")
         st.subheader("Veuillez saisir mot de passe de l'app de la MFA2 (app password): ")
-        app_passwords = st.text_input("Votre email  : (de l'emetteur)", value="blwq zpnq mbda zwac", type="password")
+        app_passwords = st.text_input("Votre passcode  : (de l'emetteur)", value="blwq zpnq mbda zwac", type="password")
         st.subheader("Veuillez saisir un email valide: ")
         email = st.text_input("Votre email  : (de l'etudiant)")
         displayname = student_data['name']
@@ -313,7 +313,7 @@ def add_data_to_db(form_placeholder):
         image_file = st.file_uploader('Image de l\'étudiant')
 
         # Bouton de soumission
-        submit_button = st.form_submit_button('Créer et ajouter l\'étudiant')
+        submit_button = st.form_submit_button(':heavy_check_mark: Créer et ajouter l\'étudiant ',  help="Créer un nouveau utilisateur  et ajouter un nouveau \'étudiant ")
 
     if submit_button:
 
@@ -352,7 +352,7 @@ def add_data_to_db(form_placeholder):
                         resized_image.save(f, 'PNG')  # Save as JPEG
 
                     with st.spinner('Obtention de l\'encodage des images ...'):
-                        sleep(3)
+                        sleep(2)
                         # obtention de l'encodage des images
                         encoding_state = encode.get_store_encodings()
                         if encoding_state:
@@ -366,7 +366,7 @@ def add_data_to_db(form_placeholder):
 
                             # Affichage d'un message de confirmation
                             st.success('L\'Étudiant est ajouté avec succès!')
-                            sleep(3)
+                            sleep(2)
                         else:  # suppression locale de l'image non valide
                             # Remove student from local data
 

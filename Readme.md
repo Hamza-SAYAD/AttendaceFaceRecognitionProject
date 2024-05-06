@@ -1,6 +1,9 @@
 ## Streamlit Attendance and Mask Detection App with Location Tracking
 
-This Streamlit application provides a comprehensive solution for managing student attendance, real-time mask detection, and location tracking. It offers functionalities for:
+This Streamlit application provides a comprehensive solution for managing student attendance, real-time mask detection, and location tracking. 
+This Python application streamlines the process of monitoring student attendance and mask usage. It leverages computer vision techniques to detect faces and masks,
+generates detailed reports, and provides email notification capabilities.
+It offers functionalities for:
 
 * **Student Management:**
     * Add new students with details like name, major, starting year, and optional location data.
@@ -17,6 +20,19 @@ This Streamlit application provides a comprehensive solution for managing studen
 * **Data Visualization:**
     * Generate insightful graphs and charts to analyze attendance trends, incorporating location data (if available).
     * Visualize metrics like: total attendance by student, number of students by standing, attendance distribution by location (optional: using donut charts, line graphs, pie charts).
+
+* **Email Notifications::**
+    * The app can be configured to send automated email alerts to designated recipients (e.g., faculty or administrators).
+    * These emails can include the attendance report as an attachment and highlight students who weren't wearing masks during the monitored period.
+
+* **Detailed Reporting:**
+    * The app generates comprehensive Excel reports that include student names, majors, total masks detected, and timestamps for attendance.
+    * These reports can be downloaded for further analysis.
+
+* **Login Functionality:**
+    *   Secure your application with a login page to restrict access to authorized personnel.
+
+
 
 ## Features
 

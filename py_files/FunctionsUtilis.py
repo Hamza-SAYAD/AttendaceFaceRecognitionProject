@@ -69,7 +69,7 @@ class FunctionsUtilis:
 
             if user_by_email.uid == password:
 
-                if email == "admin@gmail.com" or email == "hamza@gmail.com":  # these're admin's gmails
+                if email == "admin@gmail.com" or email == "hamza@gmail.com" or email == "othman@gmail.com":  # these're admin's gmails
                     auth.update_user(user_by_email.uid, custom_claims={'admin': True, 'tolerance': 1500,
                                                                        "sender_email": "luvthakur262001@gmail.com",
                                                                        "app_passwords": "blwq zpnq mbda zwac"}, app=app)
@@ -200,10 +200,25 @@ class FunctionsUtilis:
                     welcome = "Welcome, User!"
 
                 self.show_message(is_success=True,
-                                  text=f"{welcome} \n\n Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)",
+                                  text=f"{welcome} \n\n Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)"
+                                       f"\n\n Voici les fonctionnalitées fournies par cette plateforme :"
+                                       f"""\n 
+:heavy_check_mark:   Gestion des paramètres  de présence et de détetction de masque. \n
+:heavy_check_mark:   Gestion des utilisateurs et étudiants suivants des rôles (simples\n ou admins). \n
+:heavy_check_mark:	Suivi et contrôle de position des étudiants (simples utilisateurs). \n
+:heavy_check_mark:	Intégration d’un tableau de bord pour le monitoring des étudiants et \n utilisateurs. \n
+:heavy_check_mark:	Envoi flexible d'émails (gestion de sender et le recipient) pour l’envoi\n des cas  
+de détection de non port de maques, mais aussi afin d' envoyer les mots de passe pour les \nnouveaux étudiants créés. \n 
+:heavy_check_mark:	Gestion de login et de register . \n
+:heavy_check_mark:	Téléchargement transparent des fichiers Excel contenant la liste des étudiants 
+ présents et des infos sur le port ou pas de maque, notant que ces listes sont générées justes 
+pour les sessions des admins et sont stockées dans le Downloads\Attendance Excel files, puis c’est \nclasser par filière . \n
+:heavy_check_mark:	Automatisation et gestion de la tolérance de la distance en fonction des rôles des utilisateurs \n(admin ou simple) . \n
+""",
+
                                   delai=0)
 
-            deconnec_button = button_ph.button("Deconnexion")
+            deconnec_button = button_ph.button(":inbox_tray: Deconnexion",  help="Se déconnecter et se déplacer vers la page de login ")
             if deconnec_button:
                 self.messages_placeholder.empty()
                 button_ph.empty()
@@ -211,7 +226,7 @@ class FunctionsUtilis:
 
     def login_form(self, app):
         if st.session_state["is_logged_in"]:
-            deconnec_button = st.button("Deconnexion")
+            deconnec_button = st.button(":inbox_tray: Deconnexion",  help="Se déconnecter et se déplacer vers la page de login ")
             if deconnec_button:
                 self.logout()
         else:
@@ -226,7 +241,7 @@ class FunctionsUtilis:
 
                 password = st.text_input('Votre password :', type="password")
 
-                submit_button = st.form_submit_button("S'authentifier")
+                submit_button = st.form_submit_button(" :key: S'authentifier",  help="S'authentifier afin d'accéder à la plateforme de présence et détection de mask")
 
             if submit_button:
                 login_form_placeholder.empty()
@@ -316,7 +331,7 @@ class FunctionsUtilis:
             longitude = st.session_state['location_data']['Longitude']
 
             self.messages_placeholder.markdown(f"longitude: {longitude}, latitude: {latitude}")
-            sleep(3)
+            sleep(2)
 
             if os.path.exists(self.get_location_path()):
                 # supprimer le fichier location pour le mettre à jour avec une nouvelle location
@@ -355,13 +370,13 @@ class FunctionsUtilis:
             if float(distance_to_target) <= float(tolerance_distance):
                 self.messages_placeholder.markdown(
                     f"**Présence autorisée**\n **Distance à {target} : {distance_to_target:.2f} km ou {distance_to_target * 1000:.2f} m**")
-                sleep(5)
+                sleep(4)
                 st.session_state['is_authorized'] = True
                 return True
             else:
                 self.space(3)
                 self.messages_placeholder.markdown(
-                    f"**Présence refusée : Vous êtes hors de la zone autorisée**     \n\n "
+                    f"** :no_entry: Présence refusée : Vous êtes hors de la zone autorisée**     \n\n "
                     f"**Distance à {target} : {distance_to_target:.2f} km ou {distance_to_target * 1000:.2f} m**\n\n"
                     f"**Votre tolerance est : {float(tolerance_distance)}km ou {float(tolerance_distance) * 1000:.2f} m**\n\n"
                     f"**Vous devez approcher  : {distance_to_target - float(tolerance_distance):.2f}km ou {(distance_to_target - float(tolerance_distance)) * 1000:.2f} m encore plus**")
@@ -398,7 +413,7 @@ class FunctionsUtilis:
                 st.subheader("L' email  du destinataire  des cas qui ne portent pas de masque   : ")
                 recipient_email = st.text_input("Votre email  : ", value="kooolmnjksiiolm@gmail.com", disabled=True)
 
-            if st.form_submit_button("Set parameters & Start"):
+            if st.form_submit_button(":heavy_check_mark: Set parameters & Start",   help=" Remplissez éventuellement et soigneusement les paramètres ci-dessus afin d'accèder à la page de présence et de détetction de masque  "):
 
                 if not max_time_mask and not max_time_remark and not standing_tresh:
                     st.error(f"Warning : Aucun paramètre n'a été modifié.")
