@@ -195,9 +195,9 @@ class FunctionsUtilis:
                     elapsed_t = 0
                 test = self.test_admin(app)
                 if test:
-                    welcome = "Welcome, Admin!"
+                    welcome = "Bienvenue, admin!"
                 else:
-                    welcome = "Welcome, User!"
+                    welcome = "Bienvenue, simple utilisateur!"
 
                 self.show_message(is_success=True,
                                   text=f"{welcome} \n\n Bonjour {st.session_state['username']} ! Vous êtes connecté depuis ({round((elapsed_t / 60), 2)}min = {round((elapsed_t), 2)}sec)"
