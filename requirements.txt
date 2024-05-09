@@ -23,4 +23,4 @@ streamlit==1.29.0
 tensorflow==2.15.0
 cmake==3.28.0  # Specify a compatible version of cmake
 # Conditional installation of dlib based on the environment variable
-dlib @ https://pypi.org/simple/ ; platform_system != 'Windows'&& version == '19.22.99'
+dlib @ https://pypi.org/simple/; platform_system != 'Windows' and version == '19.22.99'
